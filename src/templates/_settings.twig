@@ -1,0 +1,14 @@
+{% import '_includes/forms.twig' as forms %}
+
+{# ... #}
+{{ forms.textField({
+    label: 'Foo',
+    name: 'foo',
+    value: settings.foo
+}) }}
+
+{{ forms.textField({
+    label: 'Bar',
+    name: 'bar',
+    value: settings.bar
+}) }}
