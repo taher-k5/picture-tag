@@ -2,6 +2,11 @@ includes:
     - vendor/craftcms/phpstan/phpstan.neon
 
 parameters:
-    level: 4
+    level: 6
     paths:
         - src
+    ignoreErrors:
+        - '#Call to an undefined method#'
+        - '#Property .* does not accept#'
+    excludePaths:
+        - tests

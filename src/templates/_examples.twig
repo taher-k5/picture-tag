@@ -1,0 +1,170 @@
+{# Picture Tag Plugin Examples #}
+
+{# Basic Picture Tag #}
+{% set image = craft.assets.one() %}
+{{ picture(image) }}
+
+{# Picture Tag with Custom Options #}
+{{ picture(image, {
+    class: 'hero-image',
+    imgClass: 'hero-img',
+    loading: 'eager',
+    alt: 'Hero image description',
+    quality: 90
+}) }}
+
+{# Picture Tag with Art Direction #}
+{{ picture(image, {
+    artDirection: {
+        mobile: { width: 480, height: 320, mode: 'crop' },
+        tablet: { width: 768, height: 400, mode: 'crop' },
+        desktop: { width: 1024, height: 600, mode: 'crop' }
+    },
+    sizes: [
+        '(max-width: 768px) 100vw',
+        '(min-width: 769px) 50vw'
+    ]
+}) }}
+
+{# Using Picture Options Builder #}
+{% set options = picture_options()
+    .pictureClass('gallery-image')
+    .imageClass('gallery-img')
+    .lazy()
+    .quality(85)
+    .webp()
+    .avif()
+    .transformFor('mobile', { width: 320, height: 240, mode: 'crop' })
+    .transformFor('desktop', { width: 800, height: 600, mode: 'crop' })
+%}
+{{ picture(image, options.toArray()) }}
+
+{# Simple IMG Tag #}
+{{ img(image, {
+    width: 800,
+    height: 600,
+    alt: 'Simple image'
+}) }}
+
+{# SVG Inline #}
+{% set svgAsset = craft.assets.kind('image').extension('svg').one() %}
+{{ svg(svgAsset, { inline: true, class: 'icon-svg' }) }}
+
+{# SVG as IMG #}
+{{ svg(svgAsset, { width: 24, height: 24, alt: 'Icon' }) }}
+
+{# Responsive Srcset Only #}
+{% set srcset = responsive_srcset(image, { width: 800, quality: 85 }) %}
+<img src="{{ image.getUrl({ width: 800 }) }}" 
+     srcset="{{ srcset }}" 
+     sizes="{{ responsive_sizes() }}" 
+     alt="{{ image.alt }}">
+
+{# Custom Sizes #}
+{% set customSizes = responsive_sizes([
+    '(max-width: 600px) 100vw',
+    '(min-width: 601px) 50vw'
+]) %}
+
+{# Debug Information #}
+{% if craft.app.config.general.devMode %}
+    {% set debugInfo = picture_debug(image, { width: 800, quality: 85 }) %}
+    <pre>{{ dump(debugInfo) }}</pre>
+{% endif %}
+
+{# Advanced Example with Multiple Breakpoints #}
+{{ picture(image, {
+    class: 'featured-image',
+    imgClass: 'featured-img',
+    loading: 'lazy',
+    enableWebP: true,
+    enableAvif: true,
+    quality: 90,
+    breakpoints: {
+        'small': 480,
+        'medium': 768,
+        'large': 1024,
+        'xlarge': 1200
+    },
+    transforms: {
+        'small': { width: 480, height: 320, quality: 80 },
+        'medium': { width: 768, height: 512, quality: 85 },
+        'large': { width: 1024, height: 683, quality: 90 },
+        'xlarge': { width: 1200, height: 800, quality: 95 }
+    },
+    artDirection: {
+        'small': { mode: 'crop', focalPoint: image.focalPoint },
+        'large': { mode: 'fit' }
+    },
+    sizes: [
+        '(max-width: 480px) 100vw',
+        '(min-width: 481px) and (max-width: 768px) 100vw',
+        '(min-width: 769px) and (max-width: 1024px) 80vw',
+        '(min-width: 1025px) 60vw'
+    ],
+    attributes: {
+        'data-image-id': image.id,
+        'data-focal-point': image.focalPoint|json_encode
+    }
+}) }}
+
+{# Gallery Example #}
+<div class="image-gallery">
+    {% for asset in craft.assets.limit(6) %}
+        <div class="gallery-item">
+            {{ picture(asset, {
+                class: 'gallery-picture',
+                imgClass: 'gallery-image',
+                loading: loop.first ? 'eager' : 'lazy',
+                fetchpriority: loop.first ? 'high' : 'low',
+                width: 400,
+                height: 300,
+                alt: asset.alt ?? 'Gallery image ' ~ loop.index
+            }) }}
+        </div>
+    {% endfor %}
+</div>
+
+{# Hero Section Example #}
+<section class="hero">
+    {% set heroImage = entry.heroImage.one() %}
+    {{ picture(heroImage, {
+        class: 'hero-picture',
+        imgClass: 'hero-image',
+        loading: 'eager',
+        fetchpriority: 'high',
+        preload: true,
+        artDirection: {
+            mobile: { width: 480, height: 300, mode: 'crop' },
+            tablet: { width: 768, height: 400, mode: 'crop' },
+            desktop: { width: 1200, height: 600, mode: 'crop' }
+        },
+        sizes: [
+            '(max-width: 768px) 100vw',
+            '100vw'
+        ]
+    }) }}
+</section>
+
+{# Product Image Example #}
+<div class="product-image">
+    {% set productImage = product.image.one() %}
+    {{ picture(productImage, {
+        class: 'product-picture',
+        imgClass: 'product-img',
+        loading: 'lazy',
+        enableWebP: true,
+        quality: 85,
+        artDirection: {
+            mobile: { width: 300, height: 300, mode: 'crop' },
+            desktop: { width: 500, height: 500, mode: 'crop' }
+        },
+        sizes: [
+            '(max-width: 768px) 50vw',
+            '25vw'
+        ],
+        attributes: {
+            'data-product-id': product.id
+        }
+    }) }}
+</div>

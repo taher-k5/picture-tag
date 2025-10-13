@@ -3,6 +3,7 @@
   "description": "Handle your picture and image tag with webp support on craft 5 with that render svg as image or code.",
   "type": "craft-plugin",
   "license": "mit",
+  "version": "1.0.1",
   "support": {
     "issues": "https://github.com/taher-k5/picture-tag.git/issues?state=open",
     "source": "https://github.com/taher-k5/picture-tag.git",
@@ -26,7 +27,8 @@
     "handle": "picture-tag",
     "name": "Picture Tag",
     "developer": "Taher kathiriya",
-    "documentationUrl": "https://github.com/taher-k5/picture-tag.git"
+    "documentationUrl": "https://github.com/taher-k5/picture-tag.git",
+    "changelogUrl": "https://github.com/taher-k5/picture-tag/releases"
   },
   "scripts": {
     "check-cs": "ecs check --ansi",
