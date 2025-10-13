@@ -35,7 +35,7 @@ class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterf
             new TwigFunction('picture_tag', [$this, 'picture'], ['is_safe' => ['html']]),
             new TwigFunction('img', [$this, 'img'], ['is_safe' => ['html']]),
             new TwigFunction('img_tag', [$this, 'img'], ['is_safe' => ['html']]),
-            new TwigFunction('svg', [$this, 'svg'], ['is_safe' => ['html']]),
+            // new TwigFunction('svg', [$this, 'svg'], ['is_safe' => ['html']]),
             new TwigFunction('svg_tag', [$this, 'svg'], ['is_safe' => ['html']]),
             new TwigFunction('picture_options', [$this, 'createPictureOptions']),
             new TwigFunction('responsive_srcset', [$this, 'responsiveSrcset']),
@@ -83,23 +83,15 @@ class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterf
     /**
      * Render SVG
      */
-    public function svg($asset, array $options = [], ?bool $sanitize = null, ?string $namespace = null): Markup
-    {
-        if (!$asset instanceof Asset) {
-            return new Markup('', Craft::$app->charset);
-        }
+    // public function svg($asset, array $options = []): Markup
+    // {
+    //     if (!$asset instanceof Asset) {
+    //         return new Markup('', Craft::$app->charset);
+    //     }
 
-        if ($sanitize !== null) {
-            $options['sanitize'] = $sanitize;
-        }
-
-        if ($namespace !== null) {
-            $options['namespace'] = $namespace;
-        }
-
-        $templateService = PictureTag::getInstance()->templateService;
-        return $templateService->renderSvg($asset, $options);
-    }
+    //     $templateService = PictureTag::getInstance()->templateService;
+    //     return $templateService->renderSvg($asset, $options);
+    // }
 
     /**
      * Create picture options object
