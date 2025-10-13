@@ -11,6 +11,8 @@ use Twig\TwigFunction;
 use Twig\Markup;
 use taherkathiriya\craftpicturetag\PictureTag;
 use taherkathiriya\craftpicturetag\models\PictureOptions;
+use taherkathiriya\craftpicturetag\services\ImageService;
+use taherkathiriya\craftpicturetag\services\TemplateService;
 
 /**
  * Picture Tag Twig Extension
@@ -26,6 +28,55 @@ class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterf
     }
 
     /**
+     * Get the plugin instance with error handling
+     */
+    private function getPlugin(): ?PictureTag
+    {
+        try {
+            return PictureTag::getInstance();
+        } catch (\Exception $e) {
+            Craft::error('Failed to get Picture Tag plugin instance: ' . $e->getMessage(), __METHOD__);
+            return null;
+        }
+    }
+
+    /**
+     * Get template service with error handling
+     */
+    private function getTemplateService(): ?TemplateService
+    {
+        $plugin = $this->getPlugin();
+        if (!$plugin) {
+            return null;
+        }
+
+        try {
+            return $plugin->templateService;
+        } catch (\Exception $e) {
+            Craft::error('Failed to get Picture Tag template service: ' . $e->getMessage(), __METHOD__);
+            return null;
+        }
+    }
+
+    /**
+     * Get image service with error handling
+     */
+    private function getImageService(): ?ImageService
+    {
+        $plugin = $this->getPlugin();
+        if (!$plugin) {
+            return null;
+        }
+
+        try {
+            return $plugin->imageService;
+        } catch (\Exception $e) {
+            Craft::error('Failed to get Picture Tag image service: ' . $e->getMessage(), __METHOD__);
+            return null;
+        }
+    }
+
+    /**
      * @inheritdoc
      */
     public function getFunctions(): array
@@ -35,7 +86,7 @@ class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterf
             new TwigFunction('picture_tag', [$this, 'picture'], ['is_safe' => ['html']]),
             new TwigFunction('img', [$this, 'img'], ['is_safe' => ['html']]),
             new TwigFunction('img_tag', [$this, 'img'], ['is_safe' => ['html']]),
-            // new TwigFunction('svg', [$this, 'svg'], ['is_safe' => ['html']]),
+            new TwigFunction('svg', [$this, 'svg'], ['is_safe' => ['html']]),
             new TwigFunction('svg_tag', [$this, 'svg'], ['is_safe' => ['html']]),
             new TwigFunction('picture_options', [$this, 'createPictureOptions']),
             new TwigFunction('responsive_srcset', [$this, 'responsiveSrcset']),
@@ -63,7 +114,11 @@ class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterf
             return new Markup('', Craft::$app->charset);
         }
 
-        $templateService = PictureTag::getInstance()->templateService;
+        $templateService = $this->getTemplateService();
+        if (!$templateService) {
+            return new Markup('', Craft::$app->charset);
+        }
+
         return $templateService->renderPicture($image, $options);
     }
 
@@ -76,22 +131,30 @@ class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterf
             return new Markup('', Craft::$app->charset);
         }
 
-        $templateService = PictureTag::getInstance()->templateService;
+        $templateService = $this->getTemplateService();
+        if (!$templateService) {
+            return new Markup('', Craft::$app->charset);
+        }
+
         return $templateService->renderImg($image, $options);
     }
 
     /**
      * Render SVG
      */
-    // public function svg($asset, array $options = []): Markup
-    // {
-    //     if (!$asset instanceof Asset) {
-    //         return new Markup('', Craft::$app->charset);
-    //     }
+    public function svg($asset, array $options = []): Markup
+    {
+        if (!$asset instanceof Asset) {
+            return new Markup('', Craft::$app->charset);
+        }
 
-    //     $templateService = PictureTag::getInstance()->templateService;
-    //     return $templateService->renderSvg($asset, $options);
-    // }
+        $templateService = $this->getTemplateService();
+        if (!$templateService) {
+            return new Markup('', Craft::$app->charset);
+        }
+
+        return $templateService->renderSvg($asset, $options);
+    }
 
     /**
      * Create picture options object
