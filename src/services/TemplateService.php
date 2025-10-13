@@ -110,6 +110,16 @@ class TemplateService extends Component
             return new Markup('', Craft::$app->charset);
         }
 
+        // // Handle sanitization
+        // if ($options['sanitize'] ?? true) {
+        //     $svgContent = $this->sanitizeSvg($svgContent, $options);
+        // }
+
+        // // Handle namespace
+        // if ($options['namespace'] ?? false) {
+        //     $svgContent = $this->addSvgNamespace($svgContent, $options['namespace']);
+        // }
+
         // Apply attributes to SVG
         $svgAttributes = $this->buildSvgAttributes($options);
         
@@ -165,6 +175,10 @@ class TemplateService extends Component
             'fetchpriority' => null,
             'preload' => false,
             'inline' => false,
+             // SVG specific options
+            // 'sanitize' => true,
+            // 'namespace' => false,
+            // 'role' => 'img',
         ], $options);
     }
 
@@ -362,4 +376,49 @@ class TemplateService extends Component
         
         return $attributes;
     }
+
+    //  /**
+    //  * Sanitize SVG content
+    //  */
+    // protected function sanitizeSvg(string $svgContent, array $options = []): string
+    // {
+    //     // Remove script tags and event handlers for security
+    //     $svgContent = preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi', '', $svgContent);
+    //     $svgContent = preg_replace('/on\w+\s*=\s*["\'][^"\']*["\']/', '', $svgContent);
+        
+    //     // Remove dangerous attributes
+    //     $dangerousAttributes = ['onload', 'onerror', 'onclick', 'onmouseover', 'onfocus', 'onblur'];
+    //     foreach ($dangerousAttributes as $attr) {
+    //         $svgContent = preg_replace('/\s+' . preg_quote($attr) . '\s*=\s*["\'][^"\']*["\']/', '', $svgContent);
+    //     }
+        
+    //     // Remove external references if sanitize is strict
+    //     if ($options['sanitize'] === 'strict') {
+    //         $svgContent = preg_replace('/xlink:href\s*=\s*["\'][^"\']*["\']/', '', $svgContent);
+    //         $svgContent = preg_replace('/href\s*=\s*["\'][^"\']*["\']/', '', $svgContent);
+    //     }
+        
+    //     return $svgContent;
+    // }
+
+    // /**
+    //  * Add namespace to SVG content
+    //  */
+    // protected function addSvgNamespace(string $svgContent, string $namespace = 'http://www.w3.org/2000/svg'): string
+    // {
+    //     // Check if namespace already exists
+    //     if (strpos($svgContent, 'xmlns') !== false) {
+    //         return $svgContent;
+    //     }
+        
+    //     // Add namespace to opening svg tag
+    //     $svgContent = preg_replace(
+    //         '/<svg([^>]*)>/',
+    //         '<svg$1 xmlns="' . htmlspecialchars($namespace) . '">',
+    //         $svgContent,
+    //         1
+    //     );
+        
+    //     return $svgContent;
+    // }
 }

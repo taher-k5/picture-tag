@@ -86,7 +86,7 @@ class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterf
             new TwigFunction('picture_tag', [$this, 'picture'], ['is_safe' => ['html']]),
             new TwigFunction('img', [$this, 'img'], ['is_safe' => ['html']]),
             new TwigFunction('img_tag', [$this, 'img'], ['is_safe' => ['html']]),
-            new TwigFunction('svg', [$this, 'svg'], ['is_safe' => ['html']]),
+            // new TwigFunction('svg', [$this, 'svg'], ['is_safe' => ['html']]),
             new TwigFunction('svg_tag', [$this, 'svg'], ['is_safe' => ['html']]),
             new TwigFunction('picture_options', [$this, 'createPictureOptions']),
             new TwigFunction('responsive_srcset', [$this, 'responsiveSrcset']),

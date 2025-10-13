@@ -31,14 +31,18 @@ class PictureOptions extends Model
     public ?bool $enableWebP = null;
     public ?bool $enableAvif = null;
     public ?string $role = null;
+    // public mixed $sanitize = null;
+    // public mixed $namespace = null;
 
     public function rules(): array
     {
         return [
             [['class', 'imgClass', 'id', 'alt', 'title', 'loading', 'fetchpriority', 'role'], 'string'],
+            // [['class', 'imgClass', 'id', 'alt', 'title', 'loading', 'fetchpriority', 'role', 'namespace'], 'string'],
             [['width', 'height', 'quality'], 'integer', 'min' => 1],
             [['preload', 'inline'], 'boolean'],
             [['enableWebP', 'enableAvif'], 'boolean'],
+            // [['sanitize'], 'safe'], // Can be boolean, string, or other values
             [['attributes', 'sourceAttributes', 'breakpoints', 'transforms', 'artDirection', 'sizes', 'transform'], 'safe'],
         ];
     }
@@ -204,6 +208,24 @@ class PictureOptions extends Model
         $this->inline = $inline;
         return $this;
     }
+
+    // /**
+    //  * Set sanitize option for SVG
+    //  */
+    // public function sanitize(mixed $sanitize = true): self
+    // {
+    //     $this->sanitize = $sanitize;
+    //     return $this;
+    // }
+
+    // /**
+    //  * Set namespace for SVG
+    //  */
+    // public function namespace(string $namespace): self
+    // {
+    //     $this->namespace = $namespace;
+    //     return $this;
+    // }
 
     /**
      * Convert to array
