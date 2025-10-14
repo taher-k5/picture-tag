@@ -126,14 +126,30 @@ class Settings extends Model
         }
     }
 
+    private function ensureArray(mixed $value, array $fallback): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+        return $fallback;
+    }
+
     public function getDefaultBreakpoints(): array
     {
-        return ConfigHelper::localizedValue($this->defaultBreakpoints);
+        $val = ConfigHelper::localizedValue($this->defaultBreakpoints);
+        return $this->ensureArray($val, $this->defaultBreakpoints);
     }
 
     public function getDefaultTransforms(): array
     {
-        return ConfigHelper::localizedValue($this->defaultTransforms);
+        $val = ConfigHelper::localizedValue($this->defaultTransforms);
+        return $this->ensureArray($val, $this->defaultTransforms);
     }
 
     public function getBreakpointForWidth(int $width): ?string

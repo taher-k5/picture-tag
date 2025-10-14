@@ -78,4 +78,19 @@ class PictureTag extends Plugin
     {
         Craft::$app->getView()->registerTwigExtension(new PictureTagTwigExtension());
     }
+
+    //  private function registerTwigExtensions(): void
+    // {
+    //     // Register now
+    //     Craft::$app->getView()->registerTwigExtension(new PictureTagTwigExtension());
+
+    //     // And ensure registration via event for all rendering contexts
+    //     Event::on(
+    //         View::class,
+    //         View::EVENT_REGISTER_TWIG_EXTENSIONS,
+    //         function() {
+    //             Craft::$app->getView()->registerTwigExtension(new PictureTagTwigExtension());
+    //         }
+    //     );
+    // }
 }
