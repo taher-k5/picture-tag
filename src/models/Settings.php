@@ -3,27 +3,26 @@
 namespace taherkathiriya\craftpicturetag\models;
 
 use craft\base\Model;
-use craft\helpers\ConfigHelper;
 
 /**
  * Picture Tag Settings model
  */
 class Settings extends Model
 {
-    // Default responsive breakpoints
+    // ✅ Breakpoints as per your condition
     public array $defaultBreakpoints = [
-        'mobile' => 480,
-        'tablet' => 768,
-        'desktop' => 1024,
-        'large' => 1200,
+        'mobile' => 480,   // 0 - 480px
+        'tablet' => 768,   // 481 - 768px
+        'desktop' => 1024, // 769 - 1024px
+        'large' => 1440,   // 1025 - 1440px
     ];
 
-    // Default image transforms
+    // ✅ Transforms matching your breakpoints
     public array $defaultTransforms = [
         'mobile' => ['width' => 480, 'height' => 320, 'quality' => 80],
         'tablet' => ['width' => 768, 'height' => 512, 'quality' => 85],
         'desktop' => ['width' => 1024, 'height' => 683, 'quality' => 90],
-        'large' => ['width' => 1200, 'height' => 800, 'quality' => 95],
+        'large' => ['width' => 1440, 'height' => 960, 'quality' => 95],
     ];
 
     // WebP settings
@@ -142,28 +141,30 @@ class Settings extends Model
 
     public function getDefaultBreakpoints(): array
     {
-        $val = ConfigHelper::localizedValue($this->defaultBreakpoints);
-        return $this->ensureArray($val, $this->defaultBreakpoints);
+        return $this->ensureArray($this->defaultBreakpoints, $this->defaultBreakpoints);
     }
 
     public function getDefaultTransforms(): array
     {
-        $val = ConfigHelper::localizedValue($this->defaultTransforms);
-        return $this->ensureArray($val, $this->defaultTransforms);
+        return $this->ensureArray($this->defaultTransforms, $this->defaultTransforms);
     }
 
     public function getBreakpointForWidth(int $width): ?string
     {
         $breakpoints = $this->getDefaultBreakpoints();
         
-        foreach ($breakpoints as $name => $breakpointWidth) {
-            if ($width <= $breakpointWidth) {
-                return $name;
+        $keys = array_keys($breakpoints);
+        $values = array_values($breakpoints);
+
+        for ($i = 0; $i < count($values); $i++) {
+            if ($i == 0 && $width <= $values[$i]) {
+                return $keys[$i]; // Mobile: 0 - 480px
+            } elseif ($i > 0 && $width > $values[$i - 1] && $width <= $values[$i]) {
+                return $keys[$i]; // Tablet: 481 - 768px, Desktop: 769 - 1024px, Large: 1025 - 1440px
             }
         }
 
-        // Return the largest breakpoint if width exceeds all
-        return array_key_last($breakpoints);
+        return $keys[count($keys) - 1]; // Beyond large: 1441px+
     }
 
     public function getTransformForBreakpoint(string $breakpoint): ?array

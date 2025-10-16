@@ -235,8 +235,6 @@ class PictureOptions extends Model
         $array = parent::toArray();
         
         // Remove null values
-        return array_filter($array, function($value) {
-            return $value !== null && $value !== [];
-        });
+        return array_filter($array, fn($value) => $value !== null && $value !== []);
     }
 }

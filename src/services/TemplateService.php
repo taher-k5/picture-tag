@@ -6,51 +6,25 @@ use Craft;
 use craft\base\Component;
 use craft\elements\Asset;
 use craft\helpers\Html;
-use craft\helpers\Template;
 use Twig\Markup;
-use taherkathiriya\craftpicturetag\PictureTag;
-use taherkathiriya\craftpicturetag\models\PictureOptions;
+use taherkathiriya\craftpicturetag\Plugin;
 
 /**
- * Template Service
+ * template service
  */
 class TemplateService extends Component
 {
-	/**
-	 * Safely get plugin instance
-	 */
-	private function getPlugin(): ?PictureTag
-	{
-		try {
-			$instance = PictureTag::getInstance();
-			if ($instance instanceof PictureTag) {
-				return $instance;
-			}
-		} catch (\Throwable $e) {
-			Craft::warning('PictureTag::getInstance() failed: ' . $e->getMessage(), __METHOD__);
-		}
+    private function getSettingsSafe()
+    {
+        $plugin = Plugin::getInstance();
+        return $plugin ? $plugin->getSettings() : null;
+    }
 
-		try {
-			$plugin = Craft::$app->getPlugins()->getPlugin('picture-tag');
-			return $plugin instanceof PictureTag ? $plugin : null;
-		} catch (\Throwable $e) {
-			Craft::error('Failed to get Picture Tag plugin via plugin service: ' . $e->getMessage(), __METHOD__);
-			return null;
-		}
-	}
-
-	private function getSettingsSafe()
-	{
-		$plugin = $this->getPlugin();
-		return $plugin ? $plugin->getSettings() : null;
-	}
-
-	private function getImageServiceSafe(): ?ImageService
-	{
-		$plugin = $this->getPlugin();
-		/** @var ImageService|null */
-		return $plugin ? $plugin->imageService : null;
-	}
+    private function getImageServiceSafe(): ?ImageService
+    {
+        $plugin = Plugin::getInstance();
+        return $plugin ? $plugin->imageService : null;
+    }
 
 	/**
 	 * Render picture tag
@@ -61,29 +35,37 @@ class TemplateService extends Component
 			return new Markup('', Craft::$app->charset);
 		}
 
-		$settings = $this->getSettingsSafe();
-		$imageService = $this->getImageServiceSafe();
-		if (!$settings || !$imageService) {
-			return new Markup('', Craft::$app->charset);
-		}
-		
-		$options = $this->normalizeOptions($options);
-		
-		// Generate responsive sources
-		$sources = $imageService->generateResponsiveSources($image, $options);
-		
-		// Generate sizes attribute
-		$sizes = $imageService->generateSizes($settings->getDefaultBreakpoints(), $options['sizes'] ?? []);
-		
-		// Build picture tag
-		$pictureAttributes = $this->buildPictureAttributes($options);
-		$sourceTags = $this->buildSourceTags($sources, $options);
-		$imgTag = $this->buildImgTag($image, $options, $sizes);
-		
-		$html = '<picture' . Html::renderTagAttributes($pictureAttributes) . '>' . "\n";
-		$html .= $sourceTags;
-		$html .= $imgTag;
-		$html .= '</picture>';
+        $settings = $this->getSettingsSafe();
+        $imageService = $this->getImageServiceSafe();
+        if (!$settings || !$imageService) {
+            return new Markup('', Craft::$app->charset);
+        }
+
+        $options = $this->normalizeOptions($options);
+        
+        // Generate responsive sources
+        $sources = $imageService->generateResponsiveSources($image, $options);
+
+        // Generate sizes attribute
+        $sizes = $imageService->generateSizes($settings->getDefaultBreakpoints(), $options['sizes'] ?? []);
+
+        // Build picture tag
+        $pictureAttributes = $this->buildPictureAttributes($options);
+        $sourceTags = $this->buildSourceTags($sources, $options);
+
+        // Fallback img using mobile transform and srcset
+        $fallbackSource = reset($sources) ?: [];
+        $fallbackTransform = $fallbackSource['transform'] ?? $settings->getDefaultTransforms()['mobile'] ?? ['width' => 480, 'height' => 320];
+        $fallbackSrcset = $fallbackSource['sources']['default'] ?? '';
+        $fallbackSrc = $image->getUrl($fallbackTransform, true) ?: $image->getUrl();
+
+        $imgAttributes = $this->buildImgAttributes($image, $options, $fallbackSrcset, $sizes);
+        $imgAttributes['src'] = $this->normalizeUrl($fallbackSrc);
+
+        $html = '<picture' . Html::renderTagAttributes($pictureAttributes) . '>' . "\n";
+        $html .= $sourceTags;
+        $html .= '    <img' . Html::renderTagAttributes($imgAttributes) . '>' . "\n";
+        $html .= '</picture>';
 
 		return new Markup($html, Craft::$app->charset);
 	}
@@ -105,7 +87,7 @@ class TemplateService extends Component
 		if (!$imageService || !$settings) {
 			return new Markup('', Craft::$app->charset);
 		}
-		$transform = $options['transform'] ?? [];
+		$transform = $options['transform'] ?? $settings->getDefaultTransforms()['desktop'] ?? [];
 		$srcset = $imageService->generateSrcSet($image, $transform, $transform['width'] ?? 800);
 		
 		// Generate sizes
@@ -268,7 +250,6 @@ class TemplateService extends Component
 				
 				$sourceAttributes = [
 					'srcset' => $srcset,
-					'sizes' => $options['sizes'] ? implode(', ', $options['sizes']) : null,
 					'media' => $source['media'],
 				];
 				
@@ -322,7 +303,7 @@ class TemplateService extends Component
 	 */
 	private function normalizeUrl(string $url): string
 	{
-		if ($url !== '' && str_starts_with($url, '/')) {
+		if ($url && str_starts_with($url, '/')) {
 			$base = Craft::$app->getSites()->getCurrentSite()->getBaseUrl();
 			return rtrim($base, '/') . $url;
 		}

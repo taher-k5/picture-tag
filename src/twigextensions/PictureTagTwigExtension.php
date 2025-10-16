@@ -5,88 +5,37 @@ namespace taherkathiriya\craftpicturetag\twigextensions;
 use Craft;
 use craft\elements\Asset;
 use craft\elements\db\AssetQuery;
-use craft\helpers\Template;
 use Twig\Extension\AbstractExtension;
-use Twig\Extension\GlobalsInterface;
 use Twig\TwigFunction;
 use Twig\Markup;
-use taherkathiriya\craftpicturetag\PictureTag;
+use taherkathiriya\craftpicturetag\Plugin;
 use taherkathiriya\craftpicturetag\models\PictureOptions;
 use taherkathiriya\craftpicturetag\services\ImageService;
 use taherkathiriya\craftpicturetag\services\TemplateService;
 
-/**
- * Picture Tag Twig Extension
- */
-class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterface
+class PictureTagTwigExtension extends AbstractExtension
 {
-	/**
-	 * @inheritdoc
-	 */
-	public function getName(): string
-	{
-		return 'picture-tag';
-	}
+    public function getName(): string
+    {
+        return 'picture-tag';
+    }
 
-	/**
-	 * Get the plugin instance with error handling
-	 */
-	private function getPlugin(): ?PictureTag
-	{
-		try {
-			$instance = PictureTag::getInstance();
-			if ($instance instanceof PictureTag) {
-				return $instance;
-			}
-		} catch (\Throwable $e) {
-			Craft::warning('PictureTag::getInstance() failed: ' . $e->getMessage(), __METHOD__);
-		}
+    private function getPlugin(): ?Plugin
+    {
+        return Plugin::getInstance();
+    }
 
-		// Fallback: get by handle via Craft's plugin service
-		try {
-			$plugin = Craft::$app->getPlugins()->getPlugin('picture-tag');
-			return $plugin instanceof PictureTag ? $plugin : null;
-		} catch (\Throwable $e) {
-			Craft::error('Failed to get Picture Tag plugin via plugin service: ' . $e->getMessage(), __METHOD__);
-			return null;
-		}
-	}
+    private function getTemplateService(): ?TemplateService
+    {
+        $plugin = $this->getPlugin();
+        return $plugin ? $plugin->templateService : null;
+    }
 
-	/**
-	 * Get template service with error handling
-	 */
-	private function getTemplateService(): ?TemplateService
-	{
-		$plugin = $this->getPlugin();
-		if (!$plugin) {
-			return null;
-		}
-
-		try {
-			return $plugin->templateService;
-		} catch (\Exception $e) {
-			Craft::error('Failed to get Picture Tag template service: ' . $e->getMessage(), __METHOD__);
-			return null;
-		}
-	}
-
-	/**
-	 * Get image service with error handling
-	 */
-	private function getImageService(): ?ImageService
-	{
-		$plugin = $this->getPlugin();
-		if (!$plugin) {
-			return null;
-		}
-
-		try {
-			return $plugin->imageService;
-		} catch (\Exception $e) {
-			Craft::error('Failed to get Picture Tag image service: ' . $e->getMessage(), __METHOD__);
-			return null;
-		}
-	}
+    private function getImageService(): ?ImageService
+    {
+        $plugin = $this->getPlugin();
+        return $plugin ? $plugin->imageService : null;
+    }
 
 	/**
 	 * @inheritdoc
@@ -104,16 +53,6 @@ class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterf
 			new TwigFunction('responsive_srcset', [$this, 'responsiveSrcset']),
 			new TwigFunction('responsive_sizes', [$this, 'responsiveSizes']),
 			new TwigFunction('picture_debug', [$this, 'pictureDebug']),
-		];
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	public function getGlobals(): array
-	{
-		return [
-			'picture_tag' => $this,
 		];
 	}
 
@@ -187,10 +126,10 @@ class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterf
 	/**
 	 * Render SVG
 	 */
-	public function svg($asset, array $options = []): Markup
+	public function svg($image, array $options = []): Markup
 	{
-		$asset = $this->normalizeAsset($asset);
-		if (!$asset instanceof Asset) {
+		$image = $this->normalizeAsset($image);
+		if (!$image instanceof Asset) {
 			return new Markup('', Craft::$app->charset);
 		}
 
@@ -199,7 +138,7 @@ class PictureTagTwigExtension extends AbstractExtension implements GlobalsInterf
 			return new Markup('', Craft::$app->charset);
 		}
 
-		return $templateService->renderSvg($asset, $options);
+		return $templateService->renderSvg($image, $options);
 	}
 
 	/**

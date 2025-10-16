@@ -5,41 +5,15 @@ namespace taherkathiriya\craftpicturetag\services;
 use Craft;
 use craft\base\Component;
 use craft\elements\Asset;
-use craft\models\AssetTransform;
-use craft\helpers\ImageTransforms;
-use craft\helpers\StringHelper;
-use taherkathiriya\craftpicturetag\PictureTag;
-use taherkathiriya\craftpicturetag\models\PictureOptions;
+use taherkathiriya\craftpicturetag\Plugin;
 
-/**
- * Image Service
- */
 class ImageService extends Component
 {
-	private function getPlugin(): ?PictureTag
-	{
-		try {
-			$instance = PictureTag::getInstance();
-			if ($instance instanceof PictureTag) {
-				return $instance;
-			}
-		} catch (\Throwable $e) {
-			Craft::warning('PictureTag::getInstance() failed: ' . $e->getMessage(), __METHOD__);
-		}
-		try {
-			$plugin = Craft::$app->getPlugins()->getPlugin('picture-tag');
-			return $plugin instanceof PictureTag ? $plugin : null;
-		} catch (\Throwable $e) {
-			Craft::error('Failed to get Picture Tag plugin via plugin service: ' . $e->getMessage(), __METHOD__);
-			return null;
-		}
-	}
-
-	private function getSettingsSafe()
-	{
-		$plugin = $this->getPlugin();
-		return $plugin ? $plugin->getSettings() : null;
-	}
+    private function getSettingsSafe()
+    {
+        $plugin = Plugin::getInstance();
+        return $plugin ? $plugin->getSettings() : null;
+    }
 
 	private function ensureArray(mixed $value, array $fallback): array
 	{
@@ -75,16 +49,29 @@ class ImageService extends Component
 		$enableAvif = $options['enableAvif'] ?? $settings->enableAvif;
 		$quality = $options['quality'] ?? $settings->webpQuality;
 
-		foreach ($breakpoints as $breakpointName => $breakpointWidth) {
-			$transform = isset($transforms[$breakpointName]) && is_array($transforms[$breakpointName])
-				? $transforms[$breakpointName]
-				: $this->getDefaultTransform((int)$breakpointWidth);
-			$transform = is_array($transform) ? $transform : [];
-			
-			// Apply art direction if provided
-			if (isset($artDirection[$breakpointName]) && is_array($artDirection[$breakpointName])) {
-				$transform = array_merge($transform, $artDirection[$breakpointName]);
-			}
+        // Sort breakpoints ascending for mobile-first order
+        $breakpointValues = array_values($breakpoints);
+        $breakpointKeys = array_keys($breakpoints);
+        array_multisort($breakpointValues, SORT_ASC, $breakpointKeys);
+        $sortedBreakpoints = array_combine($breakpointKeys, $breakpointValues);
+
+        foreach ($sortedBreakpoints as $breakpointName => $breakpointWidth) {
+            $transform = $transforms[$breakpointName] ?? [];
+            $transform = is_array($transform) ? $transform : [];
+
+            // Apply art direction if provided
+            if (isset($artDirection[$breakpointName]) && is_array($artDirection[$breakpointName])) {
+                $transform = array_merge($transform, $artDirection[$breakpointName]);
+            }
+
+            // Ensure width and height are set
+            if (!isset($transform['width'])) {
+                $transform['width'] = (int)$breakpointWidth;
+            }
+            if (!isset($transform['height'])) {
+                $aspectRatio = $image->getWidth() / $image->getHeight() ?: 1.5; // Default aspect if unknown
+                $transform['height'] = (int)round($transform['width'] / $aspectRatio);
+            }
 
 			// Generate source for each format
 			$sourceSets = [
@@ -104,6 +91,7 @@ class ImageService extends Component
 			$sources[] = [
 				'breakpoint' => $breakpointName,
 				'width' => (int)$breakpointWidth,
+                'transform' => $transform,
 				'sources' => $sourceSets,
 				'media' => $this->generateMediaQuery($breakpointName, (int)$breakpointWidth, $breakpoints)
 			];
@@ -146,11 +134,11 @@ class ImageService extends Component
 				$densityTransform['height'] = (int) round(((int)$transform['height']) * $density);
 			}
 
-			$url = $image->getUrl($densityTransform);
-			if ($url) {
-				$srcset[] = $url . ' ' . $density . 'x';
-			}
-		}
+            $url = $image->getUrl($densityTransform, true); // Use true for immediate generation
+            if ($url) {
+                $srcset[] = $url . ' ' . $width . 'w';
+            }
+        }
 
 		return implode(', ', $srcset);
 	}
@@ -164,22 +152,25 @@ class ImageService extends Component
 			return implode(', ', $customSizes);
 		}
 
-		$sizes = [];
-		$breakpointArray = array_values($breakpoints);
-		sort($breakpointArray);
+        $sizes = [];
+        $breakpointArray = array_values($breakpoints);
+        sort($breakpointArray);
+        $count = count($breakpointArray);
 
-		foreach ($breakpointArray as $index => $width) {
-			if ($index === 0) {
-				$sizes[] = "(max-width: {$width}px) 100vw";
-			} else {
-				$prevWidth = $breakpointArray[$index - 1];
-				$sizes[] = "(min-width: {$prevWidth}px) and (max-width: {$width}px) 100vw";
-			}
-		}
-
-		// Add final breakpoint
-		$lastWidth = end($breakpointArray);
-		$sizes[] = "(min-width: {$lastWidth}px) {$lastWidth}px";
+        for ($index = 0; $index < $count; $index++) {
+            $width = $breakpointArray[$index];
+            if ($index === 0) {
+                $sizes[] = "(max-width: {$width}px) 100vw";
+            } else {
+                $prevWidth = $breakpointArray[$index - 1];
+                $minWidth = $prevWidth + 1;
+                if ($index === $count - 1) {
+                    $sizes[] = "(min-width: {$minWidth}px) {$width}px";
+                } else {
+                    $sizes[] = "(min-width: {$minWidth}px) and (max-width: {$width}px) 100vw";
+                }
+            }
+        }
 
 		return implode(', ', $sizes);
 	}
@@ -197,9 +188,14 @@ class ImageService extends Component
 			return "(max-width: {$width}px)";
 		}
 
-		$prevWidth = $breakpointArray[$index - 1];
-		return "(min-width: {$prevWidth}px) and (max-width: {$width}px)";
-	}
+        $prevWidth = $breakpointArray[$index - 1];
+        $minWidth = $prevWidth + 1;
+        if ($index === count($breakpointArray) - 1) {
+            return "(min-width: {$minWidth}px)";
+        } else {
+            return "(min-width: {$minWidth}px) and (max-width: {$width}px)";
+        }
+    }
 
 	/**
 	 * Get default transform for breakpoint width
@@ -285,10 +281,10 @@ class ImageService extends Component
 			return '';
 		}
 
-		$path = $asset->getTransformSource();
-		if (!file_exists($path)) {
-			return '';
-		}
+        $path = $asset->getPath();
+        if (!file_exists($path)) {
+            return '';
+        }
 
 		$content = file_get_contents($path);
 		return $this->optimizeSvg($content);
