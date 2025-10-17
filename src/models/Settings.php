@@ -3,28 +3,23 @@
 namespace taherkathiriya\craftpicturetag\models;
 
 use craft\base\Model;
-use craft\helpers\ConfigHelper;
 
 /**
  * Picture Tag Settings model
  */
 class Settings extends Model
 {
-    // Default responsive breakpoints
+    // ✅ Breakpoints as per your condition
     public array $defaultBreakpoints = [
-        'mobile' => 480,
-        'tablet' => 768,
-        'desktop' => 1024,
-        'large' => 1200,
+        'mobile' => 480,   // 0 - 480px
+        'tablet' => 768,   // 481 - 768px
+        'desktop' => 1024, // 769 - 1024px
+        'large' => 1440,   // 1025 - 1440px
     ];
 
-    // Default image transforms
-    public array $defaultTransforms = [
-        'mobile' => ['width' => 480, 'height' => 320, 'quality' => 80],
-        'tablet' => ['width' => 768, 'height' => 512, 'quality' => 85],
-        'desktop' => ['width' => 1024, 'height' => 683, 'quality' => 90],
-        'large' => ['width' => 1200, 'height' => 800, 'quality' => 95],
-    ];
+    // ✅ Default transforms off by default, applied only when enabled
+    public array $defaultTransforms = [];
+    public bool $enableDefaultTransforms = false; // toggle to enable/disable default transforms
 
     // WebP settings
     public bool $enableWebP = true;
@@ -81,7 +76,7 @@ class Settings extends Model
             [['svgMaxSize'], 'integer', 'min' => 100],
             [['lazyLoadingClass', 'defaultAltText', 'defaultPictureClass', 'defaultImageClass'], 'string'],
             [['lazyPlaceholder'], 'string'],
-            [['enableWebP', 'enableAvif', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'requireAltText', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles', 'enableSvgOptimization', 'inlineSvg', 'enableCache', 'enableDebug', 'showTransformInfo'], 'boolean'],
+            [['enableWebP', 'enableAvif', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'requireAltText', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles', 'enableSvgOptimization', 'inlineSvg', 'enableCache', 'enableDebug', 'showTransformInfo', 'enableDefaultTransforms'], 'boolean'],
         ];
     }
 
@@ -126,28 +121,57 @@ class Settings extends Model
         }
     }
 
+    private function ensureArray(mixed $value, array $fallback): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+        return $fallback;
+    }
+
     public function getDefaultBreakpoints(): array
     {
-        return ConfigHelper::localizedValue($this->defaultBreakpoints);
+        return $this->ensureArray($this->defaultBreakpoints, []);
     }
 
     public function getDefaultTransforms(): array
     {
-        return ConfigHelper::localizedValue($this->defaultTransforms);
+        if ($this->enableDefaultTransforms) {
+            return $this->ensureArray([
+                'mobile' => ['width' => 480, 'height' => 320, 'quality' => 80],
+                'tablet' => ['width' => 768, 'height' => 512, 'quality' => 85],
+                'desktop' => ['width' => 1024, 'height' => 683, 'quality' => 90],
+                'large' => ['width' => 1440, 'height' => 960, 'quality' => 95],
+            ], []);
+        }
+        return $this->ensureArray($this->defaultTransforms, []);
     }
 
     public function getBreakpointForWidth(int $width): ?string
     {
         $breakpoints = $this->getDefaultBreakpoints();
-        
-        foreach ($breakpoints as $name => $breakpointWidth) {
-            if ($width <= $breakpointWidth) {
-                return $name;
+        if (empty($breakpoints)) {
+            return null;
+        }
+
+        $keys = array_keys($breakpoints);
+        $values = array_values($breakpoints);
+
+        for ($i = 0; $i < count($values); $i++) {
+            if ($i == 0 && $width <= $values[$i]) {
+                return $keys[$i]; // Mobile: 0 - 480px
+            } elseif ($i > 0 && $width > $values[$i - 1] && $width <= $values[$i]) {
+                return $keys[$i]; // Tablet: 481 - 768px, Desktop: 769 - 1024px, Large: 1025 - 1440px
             }
         }
 
-        // Return the largest breakpoint if width exceeds all
-        return array_key_last($breakpoints);
+        return $keys[count($keys) - 1]; // Beyond large: 1441px+
     }
 
     public function getTransformForBreakpoint(string $breakpoint): ?array

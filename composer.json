@@ -27,6 +27,7 @@
     "handle": "picture-tag",
     "name": "Picture Tag",
     "developer": "Taher kathiriya",
+    "class": "taherkathiriya\\craftpicturetag\\Plugin",
     "documentationUrl": "https://github.com/taher-k5/picture-tag.git",
     "changelogUrl": "https://github.com/taher-k5/picture-tag/releases"
   },

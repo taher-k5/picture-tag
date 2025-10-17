@@ -52,7 +52,7 @@ class PictureOptions extends Model
      */
     public function setBreakpointTransform(string $breakpoint, array $transform): self
     {
-        $this->artDirection[$breakpoint] = $transform;
+        $this->transforms[$breakpoint] = $transform;
         return $this;
     }
 
@@ -235,8 +235,6 @@ class PictureOptions extends Model
         $array = parent::toArray();
         
         // Remove null values
-        return array_filter($array, function($value) {
-            return $value !== null && $value !== [];
-        });
+        return array_filter($array, fn($value) => $value !== null && $value !== []);
     }
 }
