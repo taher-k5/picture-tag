@@ -17,13 +17,9 @@ class Settings extends Model
         'large' => 1440,   // 1025 - 1440px
     ];
 
-    // ✅ Transforms matching your breakpoints
-    public array $defaultTransforms = [
-        'mobile' => ['width' => 480, 'height' => 320, 'quality' => 80],
-        'tablet' => ['width' => 768, 'height' => 512, 'quality' => 85],
-        'desktop' => ['width' => 1024, 'height' => 683, 'quality' => 90],
-        'large' => ['width' => 1440, 'height' => 960, 'quality' => 95],
-    ];
+    // ✅ Default transforms off by default, applied only when enabled
+    public array $defaultTransforms = [];
+    public bool $enableDefaultTransforms = false; // toggle to enable/disable default transforms
 
     // WebP settings
     public bool $enableWebP = true;
@@ -80,7 +76,7 @@ class Settings extends Model
             [['svgMaxSize'], 'integer', 'min' => 100],
             [['lazyLoadingClass', 'defaultAltText', 'defaultPictureClass', 'defaultImageClass'], 'string'],
             [['lazyPlaceholder'], 'string'],
-            [['enableWebP', 'enableAvif', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'requireAltText', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles', 'enableSvgOptimization', 'inlineSvg', 'enableCache', 'enableDebug', 'showTransformInfo'], 'boolean'],
+            [['enableWebP', 'enableAvif', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'requireAltText', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles', 'enableSvgOptimization', 'inlineSvg', 'enableCache', 'enableDebug', 'showTransformInfo', 'enableDefaultTransforms'], 'boolean'],
         ];
     }
 
@@ -141,18 +137,29 @@ class Settings extends Model
 
     public function getDefaultBreakpoints(): array
     {
-        return $this->ensureArray($this->defaultBreakpoints, $this->defaultBreakpoints);
+        return $this->ensureArray($this->defaultBreakpoints, []);
     }
 
     public function getDefaultTransforms(): array
     {
-        return $this->ensureArray($this->defaultTransforms, $this->defaultTransforms);
+        if ($this->enableDefaultTransforms) {
+            return $this->ensureArray([
+                'mobile' => ['width' => 480, 'height' => 320, 'quality' => 80],
+                'tablet' => ['width' => 768, 'height' => 512, 'quality' => 85],
+                'desktop' => ['width' => 1024, 'height' => 683, 'quality' => 90],
+                'large' => ['width' => 1440, 'height' => 960, 'quality' => 95],
+            ], []);
+        }
+        return $this->ensureArray($this->defaultTransforms, []);
     }
 
     public function getBreakpointForWidth(int $width): ?string
     {
         $breakpoints = $this->getDefaultBreakpoints();
-        
+        if (empty($breakpoints)) {
+            return null;
+        }
+
         $keys = array_keys($breakpoints);
         $values = array_values($breakpoints);
 

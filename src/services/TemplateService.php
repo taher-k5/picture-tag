@@ -51,11 +51,11 @@ class TemplateService extends Component
 
         // Build picture tag
         $pictureAttributes = $this->buildPictureAttributes($options);
-        $sourceTags = $this->buildSourceTags($sources, $options);
+        $sourceTags = $this->buildSourceTags($sources, $options, $sizes);
 
         // Fallback img using mobile transform and srcset
         $fallbackSource = reset($sources) ?: [];
-        $fallbackTransform = $fallbackSource['transform'] ?? $settings->getDefaultTransforms()['mobile'] ?? ['width' => 480, 'height' => 320];
+        $fallbackTransform = $fallbackSource['transform'] ?? ($settings->enableDefaultTransforms ? $settings->getDefaultTransforms()['mobile'] ?? ['width' => 480, 'height' => 320] : []);
         $fallbackSrcset = $fallbackSource['sources']['default'] ?? '';
         $fallbackSrc = $image->getUrl($fallbackTransform, true) ?: $image->getUrl();
 
@@ -87,7 +87,7 @@ class TemplateService extends Component
 		if (!$imageService || !$settings) {
 			return new Markup('', Craft::$app->charset);
 		}
-		$transform = $options['transform'] ?? $settings->getDefaultTransforms()['desktop'] ?? [];
+        $transform = $options['transform'] ?? ($settings->enableDefaultTransforms ? $settings->getDefaultTransforms()['desktop'] ?? [] : []);
 		$srcset = $imageService->generateSrcSet($image, $transform, $transform['width'] ?? 800);
 		
 		// Generate sizes
@@ -187,7 +187,7 @@ class TemplateService extends Component
 			'enableAvif' => $settings->enableAvif,
 			'quality' => $settings->webpQuality,
 			'breakpoints' => $settings->getDefaultBreakpoints(),
-			'transforms' => $settings->getDefaultTransforms(),
+			'transforms' => $options['transforms'] ?? [], // User-defined transforms take precedence
 			'artDirection' => [],
 			'sizes' => [],
 			'transform' => [],
@@ -227,29 +227,32 @@ class TemplateService extends Component
 	/**
 	 * Build source tags
 	 */
-	protected function buildSourceTags(array $sources, array $options): string
+    protected function buildSourceTags(array $sources, array $options, string $sizes): string
 	{
 		$html = '';
 		$settings = $this->getSettingsSafe();
-		if (!$settings) {
+        if (!$settings || empty($sources)) {
 			return $html;
 		}
 		
 		// Order sources by format priority (avif -> webp -> default)
 		$formatOrder = ['avif', 'webp', 'default'];
-		
-		foreach ($formatOrder as $format) {
-			if ($format === 'avif' && !$settings->enableAvif) continue;
-			if ($format === 'webp' && !$settings->enableWebP) continue;
-			
-			foreach ($sources as $source) {
-				if (!isset($source['sources'][$format])) continue;
-				
-				$srcset = $source['sources'][$format];
+
+        foreach ($formatOrder as $format) {
+            if ($format === 'avif' && !$options['enableAvif']) continue;
+            if ($format === 'webp' && !$options['enableWebP']) continue;
+
+            foreach ($sources as $source) {
+                if (!isset($source['sources'][$format]) || empty($source['sources'][$format])) {
+                    continue;
+                }
+
+                $srcset = $source['sources'][$format];
 				if (empty($srcset)) continue;
 				
 				$sourceAttributes = [
 					'srcset' => $srcset,
+					'sizes' => $sizes,
 					'media' => $source['media'],
 				];
 				

@@ -42,7 +42,8 @@ class ImageService extends Component
 		}
 
 		$breakpoints = $this->ensureArray($options['breakpoints'] ?? $settings->getDefaultBreakpoints(), $settings->getDefaultBreakpoints());
-		$transforms = $this->ensureArray($options['transforms'] ?? $settings->getDefaultTransforms(), $settings->getDefaultTransforms());
+		$defaultTransforms = $settings->getDefaultTransforms();
+		$userTransforms = $this->ensureArray($options['transforms'] ?? [], []);
 		$artDirection = $options['artDirection'] ?? [];
 		$artDirection = is_array($artDirection) ? $artDirection : [];
 		$enableWebP = $options['enableWebP'] ?? $settings->enableWebP;
@@ -55,9 +56,9 @@ class ImageService extends Component
         array_multisort($breakpointValues, SORT_ASC, $breakpointKeys);
         $sortedBreakpoints = array_combine($breakpointKeys, $breakpointValues);
 
-        foreach ($sortedBreakpoints as $breakpointName => $breakpointWidth) {
-            $transform = $transforms[$breakpointName] ?? [];
-            $transform = is_array($transform) ? $transform : [];
+		foreach ($sortedBreakpoints as $breakpointName => $breakpointWidth) {
+			// Prioritize user-defined transforms; use defaults only if enabled and no user transform
+			$transform = $userTransforms[$breakpointName] ?? ($settings->enableDefaultTransforms ? $defaultTransforms[$breakpointName] ?? [] : []);
 
             // Apply art direction if provided
             if (isset($artDirection[$breakpointName]) && is_array($artDirection[$breakpointName])) {
@@ -140,8 +141,8 @@ class ImageService extends Component
             }
         }
 
-		return implode(', ', $srcset);
-	}
+        return implode(', ', $srcset) ?: ($image->getUrl($transform) . ' ' . $baseWidth . 'w');
+    }
 
 	/**
 	 * Generate sizes attribute
@@ -203,9 +204,8 @@ class ImageService extends Component
 	public function getDefaultTransform(int $width): array
 	{
 		$settings = $this->getSettingsSafe();
-		$transforms = $settings ? $this->ensureArray($settings->getDefaultTransforms(), []) : [];
-		
-		// Find the closest transform
+		$transforms = $settings ? $settings->getDefaultTransforms() : [];
+				// Find the closest transform
 		foreach ($transforms as $transform) {
 			if (is_array($transform) && isset($transform['width']) && $transform['width'] >= $width) {
 				return $transform;

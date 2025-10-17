@@ -52,7 +52,7 @@ class PictureOptions extends Model
      */
     public function setBreakpointTransform(string $breakpoint, array $transform): self
     {
-        $this->artDirection[$breakpoint] = $transform;
+        $this->transforms[$breakpoint] = $transform;
         return $this;
     }
 

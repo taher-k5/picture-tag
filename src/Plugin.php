@@ -51,10 +51,14 @@ class Plugin extends BasePlugin
 
     protected function settingsHtml(): ?string
     {
-        return Craft::$app->getView()->renderTemplate('picture-tag/_settings', [
-            'plugin' => $this,
-            'settings' => $this->getSettings(),
-        ]);
+        try {
+            return Craft::$app->getView()->renderTemplate('picture-tag/_settings', [
+                'plugin' => $this,
+                'settings' => $this->getSettings(),
+            ]);
+        } catch (\Exception $e) {
+            return '<p>Error loading settings: ' . $e->getMessage() . '</p>';
+        }
     }
 
     private function attachEventHandlers(): void
