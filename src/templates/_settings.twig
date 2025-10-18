@@ -8,10 +8,7 @@
     general: { label: 'General Settings'|t('blitz'), url: '#general' },
     breakpoints: { label: "Breakpoints"|t('picture-tag'), url: '#breakpoints' },
     transforms: { label: "Transforms"|t('picture-tag'), url: '#transforms' },
-    formats: { label: "Formats"|t('picture-tag'), url: '#formats' },
     performance: { label: "Performance"|t('picture-tag'), url: '#performance' },
-    accessibility: { label: "Accessibility"|t('picture-tag'), url: '#accessibility' },
-    advanced: { label: "Advanced"|t('picture-tag'), url: '#advanced' }
 } %}
 
 {# Determine the active tab #}
@@ -19,7 +16,7 @@
 
 {% block actionButton %}
     {% if not readOnly %}
-        <input type="submit" class="btn submit" value="{{ 'Save'|t('app') }}">
+        <input type="submit" class="btn submit" placeholder="{{ 'Save'|t('app') }}">
     {% endif %}
 {% endblock %}
 
@@ -28,35 +25,113 @@
         {{ csrfInput() }}
 
         {% if not readOnly %}
-            <input type="hidden" name="action" value="plugins/save-plugin-settings">
-            <input type="hidden" name="pluginHandle" value="picture-tag">
+            <input type="hidden" name="action" placeholder="plugins/save-plugin-settings">
+            <input type="hidden" name="pluginHandle" placeholder="picture-tag">
         {% endif %}
 
         <div class="tabs-wrapper" data-tabs>
-
             <div class="tab-content-wrapper">
+
+                {# General Tab #}
+                <div id="general" class="tab-content {% if selectedTab != 'general' %}hidden{% endif %}" data-tab-content="general">
+                    {{ forms.lightswitchField({
+                        label: 'Enable WebP' | t('picture-tag'),
+                        name: 'enableWebP',
+                        on: settings.enableWebP ?? false
+                    }) }}
+                    {{ forms.textField({
+                        label: 'WebP Quality' | t('picture-tag'),
+                        name: 'webpQuality',
+                        placeholder: settings.webpQuality ?? 80,
+                        errors: settings.getErrors('webpQuality') ?? [],
+                        size: 5,
+                    }) }}
+                    {{ forms.lightswitchField({
+                        label: 'Enable AVIF' | t('picture-tag'),
+                        name: 'enableAvif',
+                        on: settings.enableAvif ?? false
+                    }) }}
+                    {{ forms.textField({
+                        label: 'AVIF Quality' | t('picture-tag'),
+                        name: 'avifQuality',
+                        placeholder: settings.avifQuality ?? 75,
+                        errors: settings.getErrors('avifQuality') ?? [],
+                        size: 5,
+                    }) }}
+                    <h2>{{ 'SVG Handling' | t('picture-tag') }}</h2>
+                    {{ forms.lightswitchField({
+                        label: 'Enable SVG Optimization' | t('picture-tag'),
+                        name: 'enableSvgOptimization',
+                        on: settings.enableSvgOptimization ?? false
+                    }) }}
+                    {{ forms.lightswitchField({
+                        label: 'Inline SVG' | t('picture-tag'),
+                        name: 'inlineSvg',
+                        on: settings.inlineSvg ?? false
+                    }) }}
+                    {{ forms.textField({
+                        label: 'SVG Max Size (bytes)' | t('picture-tag'),
+                        name: 'svgMaxSize',
+                        placeholder: settings.svgMaxSize ?? 10000,
+                        errors: settings.getErrors('svgMaxSize') ?? [],
+                        size: 5,
+                    }) }}
+                    {{ forms.lightswitchField({
+                        label: 'Require Alt Text' | t('picture-tag'),
+                        name: 'requireAltText',
+                        on: settings.requireAltText ?? true
+                    }) }}
+                    {{ forms.textField({
+                        label: 'Default Alt Text' | t('picture-tag'),
+                        name: 'defaultAltText',
+                        placeholder: settings.defaultAltText ?? 'Image',
+                        errors: settings.getErrors('defaultAltText') ?? []
+                    }) }}
+                    {{ forms.lightswitchField({
+                        label: 'Enable Cache' | t('picture-tag'),
+                        name: 'enableCache',
+                        on: settings.enableCache ?? false
+                    }) }}
+                    {{ forms.textField({
+                        label: 'Cache Duration (seconds)' | t('picture-tag'),
+                        name: 'cacheDuration',
+                        placeholder: settings.cacheDuration ?? 3600,
+                        errors: settings.getErrors('cacheDuration') ?? [],
+                        size: 5,
+                        instructions: 'Duration in seconds' | t('picture-tag')
+                    }) }}
+                    {{ forms.lightswitchField({
+                        label: 'Enable Debug' | t('picture-tag'),
+                        name: 'enableDebug',
+                        on: settings.enableDebug ?? false
+                    }) }}
+                    {{ forms.lightswitchField({
+                        label: 'Show Transform Info' | t('picture-tag'),
+                        name: 'showTransformInfo',
+                        on: settings.showTransformInfo ?? false
+                    }) }}
+                </div>
+
                 {# Breakpoints Tab #}
                 <div id="breakpoints" class="tab-content {% if selectedTab != 'breakpoints' %}hidden{% endif %}" data-tab-content="breakpoints">
-                    <h2>{{ 'Breakpoints' | t('picture-tag') }}</h2>
-                    {% for key, value in settings.defaultBreakpoints %}
+                    {% for key, placeholder in settings.defaultBreakpoints ?? {'small': 480, 'medium': 768, 'large': 1024} %}
                         {{ forms.textField({
-                            label: key | capitalize,
+                            label: key | capitalize | t('picture-tag'),
                             name: 'defaultBreakpoints[' ~ key ~ ']',
-                            value: value,
+                            placeholder: placeholder,
                             errors: settings.getErrors('defaultBreakpoints.' ~ key) ?? [],
-                            required: true
+                            required: true,
+                            instructions: 'Pixel width for breakpoint' | t('picture-tag')
                         }) }}
                     {% endfor %}
                 </div>
 
                 {# Transforms Tab #}
                 <div id="transforms" class="tab-content {% if selectedTab != 'transforms' %}hidden{% endif %}" data-tab-content="transforms">
-                    <h2>{{ 'Transforms' | t('picture-tag') }}</h2>
                     {{ forms.lightswitchField({
                         label: 'Enable Default Transforms' | t('picture-tag'),
                         name: 'enableDefaultTransforms',
-                        on: settings.enableDefaultTransforms,
-                        instructions: 'When enabled, default transform values are used unless overridden by user-defined transforms. When disabled, only user-defined transforms are applied.' | t('picture-tag')
+                        on: settings.enableDefaultTransforms ?? false
                     }) }}
                     {% for key, transform in {
                         'mobile': {'width': 480, 'height': 320, 'quality': 80},
@@ -64,195 +139,77 @@
                         'desktop': {'width': 1024, 'height': 683, 'quality': 90},
                         'large': {'width': 1440, 'height': 960, 'quality': 95}
                     } %}
-                        <h3>{{ key | capitalize }}</h3>
-                        {{ forms.textField({
-                            label: 'Width' | t('picture-tag'),
-                            name: 'defaultTransforms[' ~ key ~ '][width]',
-                            value: settings.defaultTransforms[key]['width'] ?? transform.width,
-                            errors: settings.getErrors('defaultTransforms.' ~ key ~ '.width') ?? [],
-                            required: true,
-                            disabled: not settings.enableDefaultTransforms
-                        }) }}
-                        {{ forms.textField({
-                            label: 'Height' | t('picture-tag'),
-                            name: 'defaultTransforms[' ~ key ~ '][height]',
-                            value: settings.defaultTransforms[key]['height'] ?? transform.height,
-                            errors: settings.getErrors('defaultTransforms.' ~ key ~ '.height') ?? [],
-                            required: true,
-                            disabled: not settings.enableDefaultTransforms
-                        }) }}
-                        {{ forms.textField({
-                            label: 'Quality' | t('picture-tag'),
-                            name: 'defaultTransforms[' ~ key ~ '][quality]',
-                            value: settings.defaultTransforms[key]['quality'] ?? transform.quality,
-                            errors: settings.getErrors('defaultTransforms.' ~ key ~ '.quality') ?? [],
-                            required: true,
-                            disabled: not settings.enableDefaultTransforms
-                        }) }}
+                        <h3>{{ key | capitalize | t('picture-tag') }}</h3>
+                        <div class="flex items-center gap-xl">
+                            {{ forms.textField({
+                                label: 'Width' | t('picture-tag'),
+                                name: 'defaultTransforms[' ~ key ~ '][width]',
+                                placeholder: settings.defaultTransforms[key]['width'] ?? transform.width,
+                                errors: settings.getErrors('defaultTransforms.' ~ key ~ '.width') ?? [],
+                                required: true,
+                                disabled: not settings.enableDefaultTransforms,
+                                instructions: 'In pixels' | t('picture-tag')
+                            }) }}
+                            {{ forms.textField({
+                                label: 'Height' | t('picture-tag'),
+                                name: 'defaultTransforms[' ~ key ~ '][height]',
+                                placeholder: settings.defaultTransforms[key]['height'] ?? transform.height,
+                                errors: settings.getErrors('defaultTransforms.' ~ key ~ '.height') ?? [],
+                                required: true,
+                                disabled: not settings.enableDefaultTransforms,
+                                instructions: 'In pixels' | t('picture-tag')
+                            }) }}
+                            {{ forms.textField({
+                                label: 'Quality' | t('picture-tag'),
+                                name: 'defaultTransforms[' ~ key ~ '][quality]',
+                                placeholder: settings.defaultTransforms[key]['quality'] ?? transform.quality,
+                                errors: settings.getErrors('defaultTransforms.' ~ key ~ '.quality') ?? [],
+                                required: true,
+                                disabled: not settings.enableDefaultTransforms,
+                                instructions: '0-100' | t('picture-tag')
+                            }) }}
+                        </div>
                     {% endfor %}
-                </div>
-
-                {# Formats Tab #}
-                <div id="formats" class="tab-content {% if selectedTab != 'formats' %}hidden{% endif %}" data-tab-content="formats">
-                    <h2>{{ 'Formats' | t('picture-tag') }}</h2>
-                    {{ forms.checkboxField({
-                        label: 'Enable WebP' | t('picture-tag'),
-                        name: 'enableWebP',
-                        checked: settings.enableWebP ?? false
-                    }) }}
-                    {{ forms.textField({
-                        label: 'WebP Quality' | t('picture-tag'),
-                        name: 'webpQuality',
-                        value: settings.webpQuality ?? '',
-                        errors: settings.getErrors('webpQuality') ?? [],
-                        size: 5
-                    }) }}
-                    {{ forms.checkboxField({
-                        label: 'Enable AVIF' | t('picture-tag'),
-                        name: 'enableAvif',
-                        checked: settings.enableAvif ?? false
-                    }) }}
-                    {{ forms.textField({
-                        label: 'AVIF Quality' | t('picture-tag'),
-                        name: 'avifQuality',
-                        value: settings.avifQuality ?? '',
-                        errors: settings.getErrors('avifQuality') ?? [],
-                        size: 5
-                    }) }}
-                    <h2>{{ 'SVG Handling' | t('picture-tag') }}</h2>
-                    {{ forms.checkboxField({
-                        label: 'Enable SVG Optimization' | t('picture-tag'),
-                        name: 'enableSvgOptimization',
-                        checked: settings.enableSvgOptimization ?? false
-                    }) }}
-                    {{ forms.checkboxField({
-                        label: 'Inline SVG' | t('picture-tag'),
-                        name: 'inlineSvg',
-                        checked: settings.inlineSvg ?? false
-                    }) }}
-                    {{ forms.textField({
-                        label: 'SVG Max Size (bytes)' | t('picture-tag'),
-                        name: 'svgMaxSize',
-                        value: settings.svgMaxSize ?? '',
-                        errors: settings.getErrors('svgMaxSize') ?? [],
-                        size: 5
-                    }) }}
                 </div>
 
                 {# Performance Tab #}
                 <div id="performance" class="tab-content {% if selectedTab != 'performance' %}hidden{% endif %}" data-tab-content="performance">
-                    <h2>{{ 'Performance' | t('picture-tag') }}</h2>
-                    {{ forms.checkboxField({
+                    {{ forms.lightswitchField({
                         label: 'Enable Lazy Loading' | t('picture-tag'),
                         name: 'enableLazyLoading',
-                        checked: settings.enableLazyLoading ?? false
+                        on: settings.enableLazyLoading ?? false
                     }) }}
                     {{ forms.textField({
                         label: 'Lazy Loading Class' | t('picture-tag'),
                         name: 'lazyLoadingClass',
-                        value: settings.lazyLoadingClass ?? ''
+                        placeholder: settings.lazyLoadingClass ?? 'lazy',
+                        errors: settings.getErrors('lazyLoadingClass') ?? []
                     }) }}
                     {{ forms.textareaField({
                         label: 'Lazy Placeholder' | t('picture-tag'),
                         name: 'lazyPlaceholder',
-                        value: settings.lazyPlaceholder ?? ''
+                        placeholder: settings.lazyPlaceholder ?? 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==',
+                        rows: 4
                     }) }}
-                    {{ forms.checkboxField({
+                    {{ forms.lightswitchField({
                         label: 'Enable Preload' | t('picture-tag'),
                         name: 'enablePreload',
-                        checked: settings.enablePreload ?? false
+                        on: settings.enablePreload ?? false
                     }) }}
-                    {{ forms.checkboxField({
+                    {{ forms.lightswitchField({
                         label: 'Enable Sizes' | t('picture-tag'),
                         name: 'enableSizes',
-                        checked: settings.enableSizes ?? false
+                        on: settings.enableSizes ?? false
                     }) }}
-                    {{ forms.checkboxField({
+                    {{ forms.lightswitchField({
                         label: 'Enable Srcset' | t('picture-tag'),
                         name: 'enableSrcset',
-                        checked: settings.enableSrcset ?? false
+                        on: settings.enableSrcset ?? false
                     }) }}
-                    {{ forms.checkboxField({
+                    {{ forms.lightswitchField({
                         label: 'Enable Fetch Priority' | t('picture-tag'),
                         name: 'enableFetchPriority',
-                        checked: settings.enableFetchPriority ?? false
-                    }) }}
-                </div>
-
-                {# Accessibility Tab #}
-                <div id="accessibility" class="tab-content {% if selectedTab != 'accessibility' %}hidden{% endif %}" data-tab-content="accessibility">
-                    <h2>{{ 'Accessibility' | t('picture-tag') }}</h2>
-                    {{ forms.checkboxField({
-                        label: 'Require Alt Text' | t('picture-tag'),
-                        name: 'requireAltText',
-                        checked: settings.requireAltText ?? false
-                    }) }}
-                    {{ forms.textField({
-                        label: 'Default Alt Text' | t('picture-tag'),
-                        name: 'defaultAltText',
-                        value: settings.defaultAltText ?? ''
-                    }) }}
-                    {{ forms.checkboxField({
-                        label: 'Include Default Styles' | t('picture-tag'),
-                        name: 'includeDefaultStyles',
-                        checked: settings.includeDefaultStyles ?? false
-                    }) }}
-                    {{ forms.textField({
-                        label: 'Default Picture Class' | t('picture-tag'),
-                        name: 'defaultPictureClass',
-                        value: settings.defaultPictureClass ?? ''
-                    }) }}
-                    {{ forms.textField({
-                        label: 'Default Image Class' | t('picture-tag'),
-                        name: 'defaultImageClass',
-                        value: settings.defaultImageClass ?? ''
-                    }) }}
-                </div>
-
-                {# Advanced Tab #}
-                <div id="advanced" class="tab-content {% if selectedTab != 'advanced' %}hidden{% endif %}" data-tab-content="advanced">
-                    <h2>{{ 'Advanced' | t('picture-tag') }}</h2>
-                    {{ forms.checkboxField({
-                        label: 'Enable Art Direction' | t('picture-tag'),
-                        name: 'enableArtDirection',
-                        checked: settings.enableArtDirection ?? false
-                    }) }}
-                    {{ forms.checkboxField({
-                        label: 'Enable Cropping' | t('picture-tag'),
-                        name: 'enableCropping',
-                        checked: settings.enableCropping ?? false
-                    }) }}
-                    {{ forms.checkboxField({
-                        label: 'Enable Focal Point' | t('picture-tag'),
-                        name: 'enableFocalPoint',
-                        checked: settings.enableFocalPoint ?? false
-                    }) }}
-                    {{ forms.checkboxField({
-                        label: 'Enable Aspect Ratio' | t('picture-tag'),
-                        name: 'enableAspectRatio',
-                        checked: settings.enableAspectRatio ?? false
-                    }) }}
-                    {{ forms.checkboxField({
-                        label: 'Enable Cache' | t('picture-tag'),
-                        name: 'enableCache',
-                        checked: settings.enableCache ?? false
-                    }) }}
-                    {{ forms.textField({
-                        label: 'Cache Duration (seconds)' | t('picture-tag'),
-                        name: 'cacheDuration',
-                        value: settings.cacheDuration ?? '',
-                        errors: settings.getErrors('cacheDuration') ?? [],
-                        size: 5
-                    }) }}
-                    {{ forms.checkboxField({
-                        label: 'Enable Debug' | t('picture-tag'),
-                        name: 'enableDebug',
-                        checked: settings.enableDebug ?? false
-                    }) }}
-                    {{ forms.checkboxField({
-                        label: 'Show Transform Info' | t('picture-tag'),
-                        name: 'showTransformInfo',
-                        checked: settings.showTransformInfo ?? false
+                        on: settings.enableFetchPriority ?? false
                     }) }}
                 </div>
             </div>
