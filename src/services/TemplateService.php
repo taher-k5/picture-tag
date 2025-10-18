@@ -7,7 +7,7 @@ use craft\base\Component;
 use craft\elements\Asset;
 use craft\helpers\Html;
 use Twig\Markup;
-use taherkathiriya\craftpicturetag\Plugin;
+use taherkathiriya\craftpicturetag\PictureTag;
 
 /**
  * template service
@@ -16,13 +16,13 @@ class TemplateService extends Component
 {
     private function getSettingsSafe()
     {
-        $plugin = Plugin::getInstance();
+        $plugin = PictureTag::getInstance();
         return $plugin ? $plugin->getSettings() : null;
     }
 
     private function getImageServiceSafe(): ?ImageService
     {
-        $plugin = Plugin::getInstance();
+        $plugin = PictureTag::getInstance();
         return $plugin ? $plugin->imageService : null;
     }
 

@@ -8,7 +8,7 @@ use craft\elements\db\AssetQuery;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 use Twig\Markup;
-use taherkathiriya\craftpicturetag\Plugin;
+use taherkathiriya\craftpicturetag\PictureTag;
 use taherkathiriya\craftpicturetag\models\PictureOptions;
 use taherkathiriya\craftpicturetag\services\ImageService;
 use taherkathiriya\craftpicturetag\services\TemplateService;
@@ -20,9 +20,9 @@ class PictureTagTwigExtension extends AbstractExtension
         return 'picture-tag';
     }
 
-    private function getPlugin(): ?Plugin
+    private function getPlugin(): ?PictureTag
     {
-        return Plugin::getInstance();
+        return PictureTag::getInstance();
     }
 
     private function getTemplateService(): ?TemplateService

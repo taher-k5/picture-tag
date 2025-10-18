@@ -5,13 +5,13 @@ namespace taherkathiriya\craftpicturetag\services;
 use Craft;
 use craft\base\Component;
 use craft\elements\Asset;
-use taherkathiriya\craftpicturetag\Plugin;
+use taherkathiriya\craftpicturetag\PictureTag;
 
 class ImageService extends Component
 {
     private function getSettingsSafe()
     {
-        $plugin = Plugin::getInstance();
+        $plugin = PictureTag::getInstance();
         return $plugin ? $plugin->getSettings() : null;
     }
     /**

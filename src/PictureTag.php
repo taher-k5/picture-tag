@@ -19,7 +19,7 @@ use yii\base\Event;
  * @copyright Taher Kathiriya
  * @license https://craftcms.github.io/license/ Craft License
  */
-class Plugin extends BasePlugin
+class PictureTag extends BasePlugin
 {
     public string $schemaVersion = '1.0.0';
     public bool $hasCpSettings = true;
