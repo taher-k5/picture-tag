@@ -32,12 +32,14 @@ class TemplateService extends Component
 	public function renderPicture(Asset $image, array $options = []): Markup
 	{
 		if (!$image || $image->kind !== Asset::KIND_IMAGE) {
+            Craft::warning('Invalid image in renderPicture', __METHOD__);
 			return new Markup('', Craft::$app->charset);
 		}
 
         $settings = $this->getSettingsSafe();
         $imageService = $this->getImageServiceSafe();
         if (!$settings || !$imageService) {
+            Craft::warning('Missing settings or image service in renderPicture', __METHOD__);
             return new Markup('', Craft::$app->charset);
         }
 
@@ -53,9 +55,9 @@ class TemplateService extends Component
         $pictureAttributes = $this->buildPictureAttributes($options);
         $sourceTags = $this->buildSourceTags($sources, $options, $sizes);
 
-        // Fallback img using mobile transform and srcset
+        // Fallback img using user-defined transform or default if enabled
         $fallbackSource = reset($sources) ?: [];
-        $fallbackTransform = $fallbackSource['transform'] ?? ($settings->enableDefaultTransforms ? $settings->getDefaultTransforms()['mobile'] ?? ['width' => 480, 'height' => 320] : []);
+        $fallbackTransform = $options['transforms']['mobile'] ?? ($settings->enableDefaultTransforms ? $settings->getDefaultTransforms()['mobile'] ?? ['width' => 480, 'height' => 320, 'quality' => 80] : ['width' => 480, 'height' => 320, 'quality' => 80]);
         $fallbackSrcset = $fallbackSource['sources']['default'] ?? '';
         $fallbackSrc = $image->getUrl($fallbackTransform, true) ?: $image->getUrl();
 
@@ -76,6 +78,7 @@ class TemplateService extends Component
 	public function renderImg(Asset $image, array $options = []): Markup
 	{
 		if (!$image || $image->kind !== Asset::KIND_IMAGE) {
+            Craft::warning('Invalid image in renderImg', __METHOD__);
 			return new Markup('', Craft::$app->charset);
 		}
 
@@ -85,8 +88,10 @@ class TemplateService extends Component
 		$imageService = $this->getImageServiceSafe();
 		$settings = $this->getSettingsSafe();
 		if (!$imageService || !$settings) {
+            Craft::warning('Missing image service or settings in renderImg', __METHOD__);
 			return new Markup('', Craft::$app->charset);
 		}
+
         $transform = $options['transform'] ?? ($settings->enableDefaultTransforms ? $settings->getDefaultTransforms()['desktop'] ?? [] : []);
 		$srcset = $imageService->generateSrcSet($image, $transform, $transform['width'] ?? 800);
 		
@@ -107,11 +112,13 @@ class TemplateService extends Component
 	public function renderSvg(Asset $asset, array $options = []): Markup
 	{
 		if (!$asset || $asset->kind !== Asset::KIND_IMAGE || $asset->getExtension() !== 'svg') {
+            Craft::warning('Invalid SVG asset in renderSvg', __METHOD__);
 			return new Markup('', Craft::$app->charset);
 		}
 
 		$settings = $this->getSettingsSafe();
 		if (!$settings) {
+            Craft::warning('Missing settings in renderSvg', __METHOD__);
 			return new Markup('', Craft::$app->charset);
 		}
 		$options = $this->normalizeOptions($options);
@@ -132,11 +139,13 @@ class TemplateService extends Component
 	{
 		$imageService = $this->getImageServiceSafe();
 		if (!$imageService) {
+            Craft::warning('Missing image service in renderInlineSvg', __METHOD__);
 			return new Markup('', Craft::$app->charset);
 		}
 		$svgContent = $imageService->getSvgContent($asset);
 		
 		if (!$svgContent) {
+            Craft::warning('Empty SVG content in renderInlineSvg', __METHOD__);
 			return new Markup('', Craft::$app->charset);
 		}
 
@@ -278,40 +287,17 @@ class TemplateService extends Component
 		return $html;
 	}
 
-	/**
-	 * Build img tag
-	 */
-	protected function buildImgTag(Asset $image, array $options, string $sizes): string
-	{
-		$settings = $this->getSettingsSafe();
-		$imageService = $this->getImageServiceSafe();
-		if (!$settings || !$imageService) {
-			return '';
-		}
-		
-		// Get default transform
-		$transform = $options['transform'] ?? $settings->getDefaultTransforms()['desktop'] ?? [];
-		
-		// Generate srcset for fallback img
-		$srcset = $imageService->generateSrcSet($image, $transform, $transform['width'] ?? 800);
-		
-		// Build img attributes
-		$imgAttributes = $this->buildImgAttributes($image, $options, $srcset, $sizes);
-		
-		return '    <img' . Html::renderTagAttributes($imgAttributes) . '>' . "\n";
-	}
-
-	/**
-	 * Make URL absolute if root-relative
-	 */
-	private function normalizeUrl(string $url): string
-	{
-		if ($url && str_starts_with($url, '/')) {
-			$base = Craft::$app->getSites()->getCurrentSite()->getBaseUrl();
-			return rtrim($base, '/') . $url;
-		}
-		return $url;
-	}
+    /**
+     * Make URL absolute if root-relative
+     */
+    private function normalizeUrl(string $url): string
+    {
+        if ($url && str_starts_with($url, '/')) {
+            $base = Craft::$app->getSites()->getCurrentSite()->getBaseUrl();
+            return rtrim($base, '/') . $url;
+        }
+        return $url;
+    }
 
 	/**
 	 * Build img element attributes

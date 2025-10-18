@@ -14,22 +14,7 @@ class ImageService extends Component
         $plugin = Plugin::getInstance();
         return $plugin ? $plugin->getSettings() : null;
     }
-
-	private function ensureArray(mixed $value, array $fallback): array
-	{
-		if (is_array($value)) {
-			return $value;
-		}
-		if (is_string($value)) {
-			$decoded = json_decode($value, true);
-			if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-				return $decoded;
-			}
-		}
-		return $fallback;
-	}
-
-	/**
+    /**
 	 * Generate responsive image sources for picture tag
 	 */
 	public function generateResponsiveSources(Asset $image, array $options = []): array
@@ -37,18 +22,18 @@ class ImageService extends Component
 		$settings = $this->getSettingsSafe();
 		$sources = [];
 
-		if (!$image || $image->kind !== Asset::KIND_IMAGE || !$settings) {
-			return $sources;
-		}
+        if (!$image || $image->kind !== Asset::KIND_IMAGE || !$settings) {
+            Craft::warning('Invalid image or settings in generateResponsiveSources', __METHOD__);
+            return $sources;
+        }
 
-		$breakpoints = $this->ensureArray($options['breakpoints'] ?? $settings->getDefaultBreakpoints(), $settings->getDefaultBreakpoints());
-		$defaultTransforms = $settings->getDefaultTransforms();
-		$userTransforms = $this->ensureArray($options['transforms'] ?? [], []);
-		$artDirection = $options['artDirection'] ?? [];
-		$artDirection = is_array($artDirection) ? $artDirection : [];
-		$enableWebP = $options['enableWebP'] ?? $settings->enableWebP;
-		$enableAvif = $options['enableAvif'] ?? $settings->enableAvif;
-		$quality = $options['quality'] ?? $settings->webpQuality;
+        $breakpoints = $settings->ensureArray($options['breakpoints'] ?? $settings->getDefaultBreakpoints(), $settings->getDefaultBreakpoints());
+        $defaultTransforms = $settings->getDefaultTransforms();
+        $userTransforms = $settings->ensureArray($options['transforms'] ?? [], []);
+        $artDirection = $settings->ensureArray($options['artDirection'] ?? [], []);
+        $enableWebP = $options['enableWebP'] ?? $settings->enableWebP;
+        $enableAvif = $options['enableAvif'] ?? $settings->enableAvif;
+        $quality = $options['quality'] ?? $settings->webpQuality;
 
         // Sort breakpoints ascending for mobile-first order
         $breakpointValues = array_values($breakpoints);
@@ -66,12 +51,15 @@ class ImageService extends Component
             }
 
             // Ensure width and height are set
-            if (!isset($transform['width'])) {
+            if (!isset($transform['width']) || !is_numeric($transform['width']) || $transform['width'] <= 0) {
                 $transform['width'] = (int)$breakpointWidth;
             }
-            if (!isset($transform['height'])) {
-                $aspectRatio = $image->getWidth() / $image->getHeight() ?: 1.5; // Default aspect if unknown
+            if (!isset($transform['height']) || !is_numeric($transform['height']) || $transform['height'] <= 0) {
+                $aspectRatio = $image->getWidth() / ($image->getHeight() ?: 1) ?: 1.5;
                 $transform['height'] = (int)round($transform['width'] / $aspectRatio);
+            }
+            if (!isset($transform['quality']) || !is_numeric($transform['quality']) || $transform['quality'] < 1 || $transform['quality'] > 100) {
+                $transform['quality'] = (int)$quality;
             }
 
 			// Generate source for each format
@@ -79,12 +67,12 @@ class ImageService extends Component
 				'default' => $this->generateSrcSet($image, $transform, (int)$breakpointWidth)
 			];
 
-			if ($enableWebP) {
+			if ($enableWebP && $this->supportsWebP($image)) {
 				$webpTransform = array_merge($transform, ['format' => 'webp', 'quality' => (int)$quality]);
 				$sourceSets['webp'] = $this->generateSrcSet($image, $webpTransform, (int)$breakpointWidth);
 			}
 
-			if ($enableAvif) {
+			if ($enableAvif && $this->supportsAvif($image)) {
 				$avifTransform = array_merge($transform, ['format' => 'avif', 'quality' => (int)$settings->avifQuality]);
 				$sourceSets['avif'] = $this->generateSrcSet($image, $avifTransform, (int)$breakpointWidth);
 			}
@@ -107,6 +95,7 @@ class ImageService extends Component
 	public function generateSrcSet(Asset $image, array $transform, int $maxWidth): string
 	{
 		if (!$image || $image->kind !== Asset::KIND_IMAGE) {
+            Craft::warning('Invalid image or maxWidth in generateSrcSet', __METHOD__);
 			return '';
 		}
 
@@ -283,6 +272,7 @@ class ImageService extends Component
 
         $path = $asset->getPath();
         if (!file_exists($path)) {
+            Craft::warning('SVG file not found: ' . $path, __METHOD__);
             return '';
         }
 

@@ -83,7 +83,7 @@ class PictureTagTwigExtension extends AbstractExtension
 			$asset = Craft::$app->getElements()->getElementById((int)$image, Asset::class);
 			return $asset instanceof Asset ? $asset : null;
 		}
-
+        Craft::warning('Invalid image input in normalizeAsset', __METHOD__);
 		return null;
 	}
 
@@ -99,6 +99,7 @@ class PictureTagTwigExtension extends AbstractExtension
 
 		$templateService = $this->getTemplateService();
 		if (!$templateService) {
+            Craft::warning('Missing template service in picture', __METHOD__);
 			return new Markup('', Craft::$app->charset);
 		}
 
@@ -117,6 +118,7 @@ class PictureTagTwigExtension extends AbstractExtension
 
 		$templateService = $this->getTemplateService();
 		if (!$templateService) {
+            Craft::warning('Missing template service in img', __METHOD__);
 			return new Markup('', Craft::$app->charset);
 		}
 
@@ -135,6 +137,7 @@ class PictureTagTwigExtension extends AbstractExtension
 
 		$templateService = $this->getTemplateService();
 		if (!$templateService) {
+            Craft::warning('Missing template service in svg', __METHOD__);
 			return new Markup('', Craft::$app->charset);
 		}
 
@@ -161,6 +164,7 @@ class PictureTagTwigExtension extends AbstractExtension
 
 		$imageService = $this->getImageService();
 		if (!$imageService) {
+            Craft::warning('Missing image service in responsiveSrcset', __METHOD__);
 			return '';
 		}
 		return $imageService->generateSrcSet($image, $transform, $transform['width'] ?? 800);
@@ -174,6 +178,7 @@ class PictureTagTwigExtension extends AbstractExtension
 		$plugin = $this->getPlugin();
 		$imageService = $this->getImageService();
 		if (!$plugin || !$imageService) {
+            Craft::warning('Missing plugin or image service in responsiveSizes', __METHOD__);
 			return '';
 		}
 		$settings = $plugin->getSettings();
@@ -192,6 +197,7 @@ class PictureTagTwigExtension extends AbstractExtension
 
 		$imageService = $this->getImageService();
 		if (!$imageService) {
+            Craft::warning('Missing image service in pictureDebug', __METHOD__);
 			return [];
 		}
 		return $imageService->getTransformInfo($image, $transform);

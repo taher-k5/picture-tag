@@ -3,7 +3,7 @@
 {# Set the page title #}
 {% set title = plugin.name ~ ' Settings' | t('app') %}
 
-{# Define the tabs with IDs matching the content divs #}
+{# Define the tabs #}
 {% set tabs = {
     breakpoints: { label: "Breakpoints"|t('picture-tag'), url: '#breakpoints' },
     transforms: { label: "Transforms"|t('picture-tag'), url: '#transforms' },
@@ -13,19 +13,14 @@
     advanced: { label: "Advanced"|t('picture-tag'), url: '#advanced' }
 } %}
 
-{# Determine the active tab from the URL query param or default to breakpoints #}
+{# Determine the active tab #}
 {% set selectedTab = craft.app.request.getQueryParam('tab') | default('breakpoints') %}
 
-{# Simple debug output #}
-{# <div style="color: red;">Selected Tab: {{ selectedTab }}</div> #}
-
-{# Form for saving settings #}
 <form method="post" accept-charset="UTF-8" data-saveshortcut="true" data-confirm-unload="true">
     {{ csrfInput() }}
     <input type="hidden" name="action" value="plugins/save-plugin-settings">
     <input type="hidden" name="pluginHandle" value="{{ plugin.handle }}">
 
-    {# Craft 5.x native tab wrapper #}
     <div class="tabs-wrapper" data-tabs>
         <nav class="tab-nav">
             {% for id, tab in tabs %}
@@ -54,13 +49,8 @@
                 {{ forms.lightswitchField({
                     label: 'Enable Default Transforms' | t('picture-tag'),
                     name: 'enableDefaultTransforms',
-                    on: 'On' | t('picture-tag'),
-                    off: 'Off' | t('picture-tag'),
-                    onLabel: 'On' | t('picture-tag'),
-                    offLabel: 'Off' | t('picture-tag'),
-                    value: settings.enableDefaultTransforms ? 0 : 1,
-                    default: 0,
-                    instructions: 'Turn on to use default transform values, turn off to use user-defined transforms only.' | t('picture-tag')
+                    on: settings.enableDefaultTransforms,
+                    instructions: 'When enabled, default transform values are used unless overridden by user-defined transforms. When disabled, only user-defined transforms are applied.' | t('picture-tag')
                 }) }}
                 {% for key, transform in {
                     'mobile': {'width': 480, 'height': 320, 'quality': 80},
@@ -72,7 +62,7 @@
                     {{ forms.textField({
                         label: 'Width' | t('picture-tag'),
                         name: 'defaultTransforms[' ~ key ~ '][width]',
-                        value: settings.defaultTransforms[key]['width'] ?? transform.width ?? '',
+                        value: settings.defaultTransforms[key]['width'] ?? transform.width,
                         errors: settings.getErrors('defaultTransforms.' ~ key ~ '.width') ?? [],
                         required: true,
                         disabled: not settings.enableDefaultTransforms
@@ -80,7 +70,7 @@
                     {{ forms.textField({
                         label: 'Height' | t('picture-tag'),
                         name: 'defaultTransforms[' ~ key ~ '][height]',
-                        value: settings.defaultTransforms[key]['height'] ?? transform.height ?? '',
+                        value: settings.defaultTransforms[key]['height'] ?? transform.height,
                         errors: settings.getErrors('defaultTransforms.' ~ key ~ '.height') ?? [],
                         required: true,
                         disabled: not settings.enableDefaultTransforms
@@ -88,7 +78,7 @@
                     {{ forms.textField({
                         label: 'Quality' | t('picture-tag'),
                         name: 'defaultTransforms[' ~ key ~ '][quality]',
-                        value: settings.defaultTransforms[key]['quality'] ?? transform.quality ?? '',
+                        value: settings.defaultTransforms[key]['quality'] ?? transform.quality,
                         errors: settings.getErrors('defaultTransforms.' ~ key ~ '.quality') ?? [],
                         required: true,
                         disabled: not settings.enableDefaultTransforms
