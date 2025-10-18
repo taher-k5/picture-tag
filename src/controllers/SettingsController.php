@@ -4,7 +4,7 @@ namespace taherkathiriya\craftpicturetag\controllers;
 
 use Craft;
 use craft\web\Controller;
-use taherkathiriya\craftpicturetag\Plugin;
+use taherkathiriya\craftpicturetag\PictureTag;
 use yii\web\Response;
 
 
@@ -25,7 +25,7 @@ class SettingsController extends Controller
      */
     public function actionEdit(): ?Response
     {
-        $settings = Plugin::$plugin->settings;
+        $settings = PictureTag::$plugin->settings;
 
         return $this->renderTemplate('picture-tag/_settings', [
             'settings' => $settings,
