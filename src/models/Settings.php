@@ -9,109 +9,86 @@ use craft\base\Model;
  */
 class Settings extends Model
 {
-    public array $defaultBreakpoints = [
+    // Placeholder constants (not saved to project.yaml)
+    public const PLACEHOLDER_DEFAULT_BREAKPOINTS = [
         'mobile' => 480,
         'tablet' => 768,
         'desktop' => 1024,
         'large' => 1440,
     ];
-
-    public array $defaultTransforms = [
+    public const PLACEHOLDER_DEFAULT_TRANSFORMS = [
         'mobile' => ['width' => 480, 'height' => 320, 'quality' => 80],
         'tablet' => ['width' => 768, 'height' => 512, 'quality' => 85],
         'desktop' => ['width' => 1024, 'height' => 683, 'quality' => 90],
         'large' => ['width' => 1440, 'height' => 960, 'quality' => 95],
     ];
-    public bool $enableDefaultTransforms = false;
+    public const PLACEHOLDER_WEBP_QUALITY = 80;
+    public const PLACEHOLDER_AVIF_QUALITY = 75;
+    public const PLACEHOLDER_LAZY_LOADING_CLASS = 'lazy';
+    public const PLACEHOLDER_LAZY_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB2aWV3Qm94PSIwIDAgMSAxIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNmNWY1ZjUiLz48L3N2Zz4=';
+    public const PLACEHOLDER_DEFAULT_ALT_TEXT = 'Image';
+    public const PLACEHOLDER_DEFAULT_PICTURE_CLASS = 'picture-responsive';
+    public const PLACEHOLDER_DEFAULT_IMAGE_CLASS = 'picture-img';
+    public const PLACEHOLDER_SVG_MAX_SIZE = 1024;
+    public const PLACEHOLDER_CACHE_DURATION = 86400;
 
-    // Other properties remain unchanged
+    // Main value properties (saved to project.yaml)
+    public array $defaultBreakpoints = self::PLACEHOLDER_DEFAULT_BREAKPOINTS;
+    public array $defaultTransforms = [];
+    public bool $enableDefaultTransforms = false;
     public bool $enableWebP = true;
     public bool $enableAvif = false;
-    public int $webpQuality = 80;
-    public int $avifQuality = 75;
-
-    // Lazy loading settings
+    public ?int $webpQuality = null;
+    public ?int $avifQuality = null;
     public bool $enableLazyLoading = true;
-    public string $lazyLoadingClass = 'lazy';
-    public string $lazyPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB2aWV3Qm94PSIwIDAgMSAxIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNmNWY1ZjUiLz48L3N2Zz4=';
-
-    // Performance settings
+    public ?string $lazyLoadingClass = null;
+    public ?string $lazyPlaceholder = null;
     public bool $enablePreload = false;
     public bool $enableSizes = true;
     public bool $enableSrcset = true;
     public bool $enableFetchPriority = true;
-
-    // Accessibility settings
     public bool $requireAltText = true;
-    public string $defaultAltText = 'Image';
-
-    // Advanced settings
+    public ?string $defaultAltText = null;
     public bool $enableArtDirection = true;
     public bool $enableCropping = true;
     public bool $enableFocalPoint = true;
     public bool $enableAspectRatio = true;
-
-    // CSS and styling
     public bool $includeDefaultStyles = true;
-    public string $defaultPictureClass = 'picture-responsive';
-    public string $defaultImageClass = 'picture-img';
-
-    // SVG handling
+    public ?string $defaultPictureClass = null;
+    public ?string $defaultImageClass = null;
     public bool $enableSvgOptimization = true;
     public bool $inlineSvg = false;
-    public int $svgMaxSize = 1024; // bytes
-
-    // Cache settings
+    public ?int $svgMaxSize = null;
     public bool $enableCache = true;
-    public int $cacheDuration = 86400; // 24 hours in seconds
-
-    // Debug settings
+    public ?int $cacheDuration = null;
     public bool $enableDebug = false;
     public bool $showTransformInfo = false;
 
     public function rules(): array
     {
         return [
-            [['enableWebP', 'enableAvif', 'enableSvgOptimization', 'inlineSvg', 'requireAltText', 'enableCache', 'enableDebug', 'showTransformInfo', 'enableDefaultTransforms', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority'], 'boolean'],
-            [['webpQuality', 'avifQuality'], 'integer', 'min' => 0, 'max' => 100, 'skipOnEmpty' => true],
-            [['svgMaxSize', 'cacheDuration'], 'integer', 'min' => 0, 'skipOnEmpty' => true],
-            [['defaultAltText', 'lazyLoadingClass', 'lazyPlaceholder'], 'string', 'skipOnEmpty' => true],
-            [['defaultBreakpoints', 'defaultTransforms'], 'safe'], // Allow empty or partial updates
+            [['enableWebP', 'enableAvif', 'enableSvgOptimization', 'inlineSvg', 'requireAltText', 'enableCache', 'enableDebug', 'showTransformInfo', 'enableDefaultTransforms', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles'], 'boolean', 'skipOnEmpty' => true],
+            [['webpQuality', 'avifQuality', 'svgMaxSize', 'cacheDuration'], 'integer', 'min' => 0, 'skipOnEmpty' => true],
+            [['defaultAltText', 'lazyLoadingClass', 'lazyPlaceholder', 'defaultPictureClass', 'defaultImageClass'], 'string', 'skipOnEmpty' => true],
+            [['defaultBreakpoints', 'defaultTransforms'], 'safe'],
             [['defaultBreakpoints'], 'validateBreakpoints', 'skipOnEmpty' => true],
             [['defaultTransforms'], 'validateTransforms', 'skipOnEmpty' => true, 'when' => fn() => $this->enableDefaultTransforms],
-            [['webpQuality', 'avifQuality', 'svgMaxSize', 'cacheDuration'], 'default', 'value' => function ($model, $attribute) {
-                return $model->$attribute ?? ($attribute === 'webpQuality' ? 80 : ($attribute === 'avifQuality' ? 75 : ($attribute === 'svgMaxSize' ? 10000 : 3600)));
-            }],
-            [['defaultAltText'], 'default', 'value' => 'Image'],
-            [['defaultBreakpoints'], 'default', 'value' => ['mobile' => 480, 'tablet' => 768, 'desktop' => 1024, 'large' => 1440]],
-            [['defaultTransforms'], 'default', 'value' => [
-                'mobile' => ['width' => 480, 'height' => 320, 'quality' => 80],
-                'tablet' => ['width' => 768, 'height' => 512, 'quality' => 85],
-                'desktop' => ['width' => 1024, 'height' => 683, 'quality' => 90],
-                'large' => ['width' => 1440, 'height' => 960, 'quality' => 95],
-            ]],
         ];
     }
 
     public function validateBreakpoints($attribute, $params): void
     {
-        // If empty or not submitted, use default values
-        if (empty($this->$attribute) || !is_array($this->$attribute)) {
-            $this->$attribute = $this->getDefaultBreakpoints();
+        if (!is_array($this->$attribute)) {
+            $this->addError($attribute, 'Breakpoints must be an array.');
             return;
         }
 
-        // Only validate provided values
-        $defaults = $this->getDefaultBreakpoints();
-        foreach ($defaults as $name => $defaultValue) {
-            if (isset($this->$attribute[$name]) && $this->$attribute[$name] !== '') {
-                $width = $this->$attribute[$name];
-                if (!is_numeric($width) || $width <= 0) {
-                    $this->addError($attribute, "Breakpoint '{$name}' must be a positive number.");
-                }
-            } else {
-                // Use default if not provided
-                $this->$attribute[$name] = $defaultValue;
+        foreach ($this->$attribute as $name => $width) {
+            if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
+                $this->addError($attribute, "Breakpoint name '{$name}' must be alphanumeric.");
+            }
+            if (!empty($width) && (!is_numeric($width) || $width <= 0)) {
+                $this->addError($attribute, "Breakpoint '{$name}' must be a positive number.");
             }
         }
     }
@@ -119,58 +96,38 @@ class Settings extends Model
     public function validateTransforms($attribute, $params): void
     {
         // If transforms are disabled or empty, use defaults or empty array
-        if (!$this->enableDefaultTransforms || empty($this->$attribute) || !is_array($this->$attribute)) {
-            $this->$attribute = $this->enableDefaultTransforms ? $this->getDefaultTransforms() : [];
+        if (!$this->enableDefaultTransforms || !is_array($this->$attribute)) {
             return;
         }
 
-        // Only validate provided values
-        $defaults = $this->getDefaultTransforms();
-        foreach ($defaults as $name => $defaultTransform) {
-            if (isset($this->$attribute[$name]) && is_array($this->$attribute[$name])) {
-                $transform = $this->$attribute[$name];
+        foreach ($this->$attribute as $name => $transform) {
+            if (!is_array($transform)) {
+                $this->addError($attribute, "Transform '{$name}' must be an array.");
+                continue;
+            }
 
-                // Validate width
-                if (isset($transform['width']) && $transform['width'] !== '') {
-                    if (!is_numeric($transform['width']) || $transform['width'] <= 0) {
-                        $this->addError($attribute, "Transform '{$name}' width must be a positive number.");
-                    }
-                } else {
-                    $this->$attribute[$name]['width'] = $defaultTransform['width'];
-                }
+            if (isset($transform['width']) && !empty($transform['width']) && (!is_numeric($transform['width']) || $transform['width'] <= 0)) {
+                $this->addError($attribute, "Transform '{$name}' width must be a positive number.");
+            }
 
-                // Validate height
-                if (isset($transform['height']) && $transform['height'] !== '') {
-                    if (!is_numeric($transform['height']) || $transform['height'] <= 0) {
-                        $this->addError($attribute, "Transform '{$name}' height must be a positive number.");
-                    }
-                } else {
-                    $this->$attribute[$name]['height'] = $defaultTransform['height'];
-                }
+            if (isset($transform['height']) && !empty($transform['height']) && (!is_numeric($transform['height']) || $transform['height'] <= 0)) {
+                $this->addError($attribute, "Transform '{$name}' height must be a positive number.");
+            }
 
-                // Validate quality
-                if (isset($transform['quality']) && $transform['quality'] !== '') {
-                    if (!is_numeric($transform['quality']) || $transform['quality'] < 1 || $transform['quality'] > 100) {
-                        $this->addError($attribute, "Transform '{$name}' quality must be between 1 and 100.");
-                    }
-                } else {
-                    $this->$attribute[$name]['quality'] = $defaultTransform['quality'];
-                }
-            } else {
-                // Use default transform if not provided
-                $this->$attribute[$name] = $defaultTransform;
+            if (isset($transform['quality']) && !empty($transform['quality']) && (!is_numeric($transform['quality']) || $transform['quality'] < 1 || $transform['quality'] > 100)) {
+                $this->addError($attribute, "Transform '{$name}' quality must be between 1 and 100.");
             }
         }
     }
 
     public function ensureArray(mixed $value, array $fallback): array
     {
-        if (is_array($value)) {
+        if (is_array($value) && !empty($value)) {
             return $value;
         }
         if (is_string($value)) {
             $decoded = json_decode($value, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && !empty($decoded)) {
                 return $decoded;
             }
         }
@@ -179,25 +136,15 @@ class Settings extends Model
 
     public function getDefaultBreakpoints(): array
     {
-        return $this->ensureArray($this->defaultBreakpoints, [
-            'mobile' => 480,
-            'tablet' => 768,
-            'desktop' => 1024,
-            'large' => 1440,
-        ]);
+        return $this->ensureArray($this->defaultBreakpoints, self::PLACEHOLDER_DEFAULT_BREAKPOINTS);
     }
 
     public function getDefaultTransforms(): array
     {
         if ($this->enableDefaultTransforms) {
-            return $this->ensureArray($this->defaultTransforms, [
-                'mobile' => ['width' => 480, 'height' => 320, 'quality' => 80],
-                'tablet' => ['width' => 768, 'height' => 512, 'quality' => 85],
-                'desktop' => ['width' => 1024, 'height' => 683, 'quality' => 90],
-                'large' => ['width' => 1440, 'height' => 960, 'quality' => 95],
-            ]);
+            return $this->ensureArray($this->defaultTransforms, self::PLACEHOLDER_DEFAULT_TRANSFORMS);
         }
-        return [];
+        return self::PLACEHOLDER_DEFAULT_TRANSFORMS;
     }
 
     public function getBreakpointForWidth(int $width): ?string

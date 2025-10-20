@@ -42,7 +42,8 @@
                     {{ forms.textField({
                         label: 'WebP Quality' | t('picture-tag'),
                         name: 'settings[webpQuality]',
-                        placeholder: settings.webpQuality ?? 80,
+                        placeholder: settings.PLACEHOLDER_WEBP_QUALITY,
+                        value: settings.webpQuality is not null ? settings.webpQuality : '',
                         errors: settings.getErrors('webpQuality') ?? [],
                         size: 5
                     }) }}
@@ -54,7 +55,8 @@
                     {{ forms.textField({
                         label: 'AVIF Quality' | t('picture-tag'),
                         name: 'settings[avifQuality]',
-                        placeholder: settings.avifQuality ?? 75,
+                        placeholder: settings.PLACEHOLDER_AVIF_QUALITY,
+                        value: settings.avifQuality is not null ? settings.avifQuality : '',
                         errors: settings.getErrors('avifQuality') ?? [],
                         size: 5
                     }) }}
@@ -72,7 +74,8 @@
                     {{ forms.textField({
                         label: 'SVG Max Size (bytes)' | t('picture-tag'),
                         name: 'settings[svgMaxSize]',
-                        placeholder: settings.svgMaxSize ?? 1024,
+                        placeholder: settings.PLACEHOLDER_SVG_MAX_SIZE,
+                        value: settings.svgMaxSize is not null ? settings.svgMaxSize : '',
                         errors: settings.getErrors('svgMaxSize') ?? [],
                         size: 5
                     }) }}
@@ -84,7 +87,8 @@
                     {{ forms.textField({
                         label: 'Default Alt Text' | t('picture-tag'),
                         name: 'settings[defaultAltText]',
-                        placeholder: settings.defaultAltText ?? 'Image',
+                        placeholder: settings.PLACEHOLDER_DEFAULT_ALT_TEXT,
+                        value: settings.defaultAltText is not null ? settings.defaultAltText : '',
                         errors: settings.getErrors('defaultAltText') ?? []
                     }) }}
                     {{ forms.lightswitchField({
@@ -95,7 +99,8 @@
                     {{ forms.textField({
                         label: 'Cache Duration (seconds)' | t('picture-tag'),
                         name: 'settings[cacheDuration]',
-                        placeholder: settings.cacheDuration ?? 86400,
+                        placeholder: settings.PLACEHOLDER_CACHE_DURATION,
+                        value: settings.cacheDuration is not null ? settings.cacheDuration : '',
                         errors: settings.getErrors('cacheDuration') ?? [],
                         size: 5,
                         instructions: 'Duration in seconds' | t('picture-tag')
@@ -114,11 +119,12 @@
 
                 {# Breakpoints Tab #}
                 <div id="breakpoints" class="tab-content {% if selectedTab != 'breakpoints' %}hidden{% endif %}" data-tab-content="breakpoints">
-                    {% for key, value in settings.defaultBreakpoints ?? {'mobile': 480, 'tablet': 768, 'desktop': 1024, 'large': 1440} %}
+                    {% for key, value in settings.getDefaultBreakpoints() %}
                         {{ forms.textField({
                             label: key | capitalize | t('picture-tag'),
                             name: 'settings[defaultBreakpoints][' ~ key | e('html') ~ ']',
-                            placeholder: value,
+                            placeholder: settings.PLACEHOLDER_DEFAULT_BREAKPOINTS[key],
+                            value: settings.getDefaultBreakpoints()[key] is not null ? settings.getDefaultBreakpoints()[key] : '',
                             errors: settings.getErrors('defaultBreakpoints.' ~ key) ?? [],
                             required: true,
                             instructions: 'Pixel width for breakpoint' | t('picture-tag')
@@ -133,18 +139,14 @@
                         name: 'settings[enableDefaultTransforms]',
                         on: settings.enableDefaultTransforms ?? false
                     }) }}
-                    {% for key, transform in settings.defaultTransforms ?? {
-                        'mobile': {'width': 480, 'height': 320, 'quality': 80},
-                        'tablet': {'width': 768, 'height': 512, 'quality': 85},
-                        'desktop': {'width': 1024, 'height': 683, 'quality': 90},
-                        'large': {'width': 1440, 'height': 960, 'quality': 95}
-                    } %}
+                    {% for key, transform in settings.getDefaultTransforms() %}
                         <h3>{{ key | capitalize | t('picture-tag') }}</h3>
                         <div class="flex items-center gap-xl">
                             {{ forms.textField({
                                 label: 'Width' | t('picture-tag'),
                                 name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][width]',
-                                placeholder: transform.width ?? transform.width,
+                                placeholder: settings.PLACEHOLDER_DEFAULT_TRANSFORMS[key].width,
+                                value: settings.getDefaultTransforms()[key].width is not null ? settings.getDefaultTransforms()[key].width : '',
                                 errors: settings.getErrors('defaultTransforms.' ~ key ~ '.width') ?? [],
                                 required: true,
                                 disabled: not settings.enableDefaultTransforms,
@@ -153,7 +155,8 @@
                             {{ forms.textField({
                                 label: 'Height' | t('picture-tag'),
                                 name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][height]',
-                                placeholder: transform.height ?? transform.height,
+                                placeholder: settings.PLACEHOLDER_DEFAULT_TRANSFORMS[key].height,
+                                value: settings.getDefaultTransforms()[key].height is not null ? settings.getDefaultTransforms()[key].height : '',
                                 errors: settings.getErrors('defaultTransforms.' ~ key ~ '.height') ?? [],
                                 required: true,
                                 disabled: not settings.enableDefaultTransforms,
@@ -162,7 +165,8 @@
                             {{ forms.textField({
                                 label: 'Quality' | t('picture-tag'),
                                 name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][quality]',
-                                placeholder: transform.quality ?? transform.quality,
+                                placeholder: settings.PLACEHOLDER_DEFAULT_TRANSFORMS[key].quality,
+                                value: settings.getDefaultTransforms()[key].quality is not null ? settings.getDefaultTransforms()[key].quality : '',
                                 errors: settings.getErrors('defaultTransforms.' ~ key ~ '.quality') ?? [],
                                 required: true,
                                 disabled: not settings.enableDefaultTransforms,
@@ -182,13 +186,15 @@
                     {{ forms.textField({
                         label: 'Lazy Loading Class' | t('picture-tag'),
                         name: 'settings[lazyLoadingClass]',
-                        placeholder: settings.lazyLoadingClass ?? 'lazy',
+                        placeholder: settings.PLACEHOLDER_LAZY_LOADING_CLASS,
+                        value: settings.lazyLoadingClass is not null ? settings.lazyLoadingClass : '',
                         errors: settings.getErrors('lazyLoadingClass') ?? []
                     }) }}
                     {{ forms.textareaField({
                         label: 'Lazy Placeholder' | t('picture-tag'),
                         name: 'settings[lazyPlaceholder]',
-                        placeholder: settings.lazyPlaceholder ?? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB2aWV3Qm94PSIwIDAgMSAxIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxIiBoZWpZ2h0PSIxIiBmaWxsPSIjZjVmNWY1Ii8+PC9zdmc+',
+                        placeholder: settings.PLACEHOLDER_LAZY_PLACEHOLDER,
+                        value: settings.lazyPlaceholder is not null ? settings.lazyPlaceholder : '',
                         rows: 4
                     }) }}
                     {{ forms.lightswitchField({
