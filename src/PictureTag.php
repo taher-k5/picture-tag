@@ -61,18 +61,6 @@ class PictureTag extends BasePlugin
         return new Settings();
     }
 
-    // protected function settingsHtml(): ?string
-    // {
-    //     try {
-    //         return Craft::$app->getView()->renderTemplate('picture-tag/_settings', [
-    //             'plugin' => $this,
-    //             'settings' => $this->getSettings(),
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return '<p>Error loading settings: ' . $e->getMessage() . '</p>';
-    //     }
-    // }
-
     private function attachEventHandlers(): void
     {
         Event::on(
@@ -98,9 +86,8 @@ class PictureTag extends BasePlugin
                 // Merge so that settings controller action comes first (important!)
                 $event->rules = array_merge([
                     'settings/plugins/picture-tag' => 'picture-tag/settings/edit',
-                ],
-                    $event->rules
-                );
+                    'picture-tag/settings/save' => 'picture-tag/settings/save',
+                ], $event->rules);
             }
         );
     }

@@ -5,10 +5,10 @@
 {% set title = 'Picture Tag' %}
 
 {% set tabs = {
-    general: { label: 'General Settings'|t('blitz'), url: '#general' },
-    breakpoints: { label: "Breakpoints"|t('picture-tag'), url: '#breakpoints' },
-    transforms: { label: "Transforms"|t('picture-tag'), url: '#transforms' },
-    performance: { label: "Performance"|t('picture-tag'), url: '#performance' },
+    'general': { label: 'General Settings'|t('picture-tag'), url: '#general' },
+    'breakpoints': { label: "Breakpoints"|t('picture-tag'), url: '#breakpoints' },
+    'transforms': { label: "Transforms"|t('picture-tag'), url: '#transforms' },
+    'performance': { label: "Performance"|t('picture-tag'), url: '#performance' },
 } %}
 
 {# Determine the active tab #}
@@ -16,7 +16,7 @@
 
 {% block actionButton %}
     {% if not readOnly %}
-        <input type="submit" class="btn submit" placeholder="{{ 'Save'|t('app') }}">
+        <input type="submit" class="btn submit" value="{{ 'Save'|t('app') }}">
     {% endif %}
 {% endblock %}
 
@@ -25,8 +25,8 @@
         {{ csrfInput() }}
 
         {% if not readOnly %}
-            <input type="hidden" name="action" placeholder="plugins/save-plugin-settings">
-            <input type="hidden" name="pluginHandle" placeholder="picture-tag">
+            <input type="hidden" name="action" value="picture-tag/settings/save">
+            <input type="hidden" name="pluginHandle" value="picture-tag">
         {% endif %}
 
         <div class="tabs-wrapper" data-tabs>
@@ -36,89 +36,89 @@
                 <div id="general" class="tab-content {% if selectedTab != 'general' %}hidden{% endif %}" data-tab-content="general">
                     {{ forms.lightswitchField({
                         label: 'Enable WebP' | t('picture-tag'),
-                        name: 'enableWebP',
+                        name: 'settings[enableWebP]',
                         on: settings.enableWebP ?? false
                     }) }}
                     {{ forms.textField({
                         label: 'WebP Quality' | t('picture-tag'),
-                        name: 'webpQuality',
+                        name: 'settings[webpQuality]',
                         placeholder: settings.webpQuality ?? 80,
                         errors: settings.getErrors('webpQuality') ?? [],
-                        size: 5,
+                        size: 5
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Enable AVIF' | t('picture-tag'),
-                        name: 'enableAvif',
+                        name: 'settings[enableAvif]',
                         on: settings.enableAvif ?? false
                     }) }}
                     {{ forms.textField({
                         label: 'AVIF Quality' | t('picture-tag'),
-                        name: 'avifQuality',
+                        name: 'settings[avifQuality]',
                         placeholder: settings.avifQuality ?? 75,
                         errors: settings.getErrors('avifQuality') ?? [],
-                        size: 5,
+                        size: 5
                     }) }}
                     <h2>{{ 'SVG Handling' | t('picture-tag') }}</h2>
                     {{ forms.lightswitchField({
                         label: 'Enable SVG Optimization' | t('picture-tag'),
-                        name: 'enableSvgOptimization',
+                        name: 'settings[enableSvgOptimization]',
                         on: settings.enableSvgOptimization ?? false
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Inline SVG' | t('picture-tag'),
-                        name: 'inlineSvg',
+                        name: 'settings[inlineSvg]',
                         on: settings.inlineSvg ?? false
                     }) }}
                     {{ forms.textField({
                         label: 'SVG Max Size (bytes)' | t('picture-tag'),
-                        name: 'svgMaxSize',
-                        placeholder: settings.svgMaxSize ?? 10000,
+                        name: 'settings[svgMaxSize]',
+                        placeholder: settings.svgMaxSize ?? 1024,
                         errors: settings.getErrors('svgMaxSize') ?? [],
-                        size: 5,
+                        size: 5
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Require Alt Text' | t('picture-tag'),
-                        name: 'requireAltText',
+                        name: 'settings[requireAltText]',
                         on: settings.requireAltText ?? true
                     }) }}
                     {{ forms.textField({
                         label: 'Default Alt Text' | t('picture-tag'),
-                        name: 'defaultAltText',
+                        name: 'settings[defaultAltText]',
                         placeholder: settings.defaultAltText ?? 'Image',
                         errors: settings.getErrors('defaultAltText') ?? []
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Enable Cache' | t('picture-tag'),
-                        name: 'enableCache',
-                        on: settings.enableCache ?? false
+                        name: 'settings[enableCache]',
+                        on: settings.enableCache ?? true
                     }) }}
                     {{ forms.textField({
                         label: 'Cache Duration (seconds)' | t('picture-tag'),
-                        name: 'cacheDuration',
-                        placeholder: settings.cacheDuration ?? 3600,
+                        name: 'settings[cacheDuration]',
+                        placeholder: settings.cacheDuration ?? 86400,
                         errors: settings.getErrors('cacheDuration') ?? [],
                         size: 5,
                         instructions: 'Duration in seconds' | t('picture-tag')
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Enable Debug' | t('picture-tag'),
-                        name: 'enableDebug',
+                        name: 'settings[enableDebug]',
                         on: settings.enableDebug ?? false
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Show Transform Info' | t('picture-tag'),
-                        name: 'showTransformInfo',
+                        name: 'settings[showTransformInfo]',
                         on: settings.showTransformInfo ?? false
                     }) }}
                 </div>
 
                 {# Breakpoints Tab #}
                 <div id="breakpoints" class="tab-content {% if selectedTab != 'breakpoints' %}hidden{% endif %}" data-tab-content="breakpoints">
-                    {% for key, placeholder in settings.defaultBreakpoints ?? {'small': 480, 'medium': 768, 'large': 1024} %}
+                    {% for key, value in settings.defaultBreakpoints ?? {'mobile': 480, 'tablet': 768, 'desktop': 1024, 'large': 1440} %}
                         {{ forms.textField({
                             label: key | capitalize | t('picture-tag'),
-                            name: 'defaultBreakpoints[' ~ key ~ ']',
-                            placeholder: placeholder,
+                            name: 'settings[defaultBreakpoints][' ~ key | e('html') ~ ']',
+                            placeholder: value,
                             errors: settings.getErrors('defaultBreakpoints.' ~ key) ?? [],
                             required: true,
                             instructions: 'Pixel width for breakpoint' | t('picture-tag')
@@ -130,10 +130,10 @@
                 <div id="transforms" class="tab-content {% if selectedTab != 'transforms' %}hidden{% endif %}" data-tab-content="transforms">
                     {{ forms.lightswitchField({
                         label: 'Enable Default Transforms' | t('picture-tag'),
-                        name: 'enableDefaultTransforms',
+                        name: 'settings[enableDefaultTransforms]',
                         on: settings.enableDefaultTransforms ?? false
                     }) }}
-                    {% for key, transform in {
+                    {% for key, transform in settings.defaultTransforms ?? {
                         'mobile': {'width': 480, 'height': 320, 'quality': 80},
                         'tablet': {'width': 768, 'height': 512, 'quality': 85},
                         'desktop': {'width': 1024, 'height': 683, 'quality': 90},
@@ -143,8 +143,8 @@
                         <div class="flex items-center gap-xl">
                             {{ forms.textField({
                                 label: 'Width' | t('picture-tag'),
-                                name: 'defaultTransforms[' ~ key ~ '][width]',
-                                placeholder: settings.defaultTransforms[key]['width'] ?? transform.width,
+                                name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][width]',
+                                placeholder: transform.width ?? transform.width,
                                 errors: settings.getErrors('defaultTransforms.' ~ key ~ '.width') ?? [],
                                 required: true,
                                 disabled: not settings.enableDefaultTransforms,
@@ -152,8 +152,8 @@
                             }) }}
                             {{ forms.textField({
                                 label: 'Height' | t('picture-tag'),
-                                name: 'defaultTransforms[' ~ key ~ '][height]',
-                                placeholder: settings.defaultTransforms[key]['height'] ?? transform.height,
+                                name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][height]',
+                                placeholder: transform.height ?? transform.height,
                                 errors: settings.getErrors('defaultTransforms.' ~ key ~ '.height') ?? [],
                                 required: true,
                                 disabled: not settings.enableDefaultTransforms,
@@ -161,8 +161,8 @@
                             }) }}
                             {{ forms.textField({
                                 label: 'Quality' | t('picture-tag'),
-                                name: 'defaultTransforms[' ~ key ~ '][quality]',
-                                placeholder: settings.defaultTransforms[key]['quality'] ?? transform.quality,
+                                name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][quality]',
+                                placeholder: transform.quality ?? transform.quality,
                                 errors: settings.getErrors('defaultTransforms.' ~ key ~ '.quality') ?? [],
                                 required: true,
                                 disabled: not settings.enableDefaultTransforms,
@@ -176,40 +176,40 @@
                 <div id="performance" class="tab-content {% if selectedTab != 'performance' %}hidden{% endif %}" data-tab-content="performance">
                     {{ forms.lightswitchField({
                         label: 'Enable Lazy Loading' | t('picture-tag'),
-                        name: 'enableLazyLoading',
-                        on: settings.enableLazyLoading ?? false
+                        name: 'settings[enableLazyLoading]',
+                        on: settings.enableLazyLoading ?? true
                     }) }}
                     {{ forms.textField({
                         label: 'Lazy Loading Class' | t('picture-tag'),
-                        name: 'lazyLoadingClass',
+                        name: 'settings[lazyLoadingClass]',
                         placeholder: settings.lazyLoadingClass ?? 'lazy',
                         errors: settings.getErrors('lazyLoadingClass') ?? []
                     }) }}
                     {{ forms.textareaField({
                         label: 'Lazy Placeholder' | t('picture-tag'),
-                        name: 'lazyPlaceholder',
-                        placeholder: settings.lazyPlaceholder ?? 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==',
+                        name: 'settings[lazyPlaceholder]',
+                        placeholder: settings.lazyPlaceholder ?? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB2aWV3Qm94PSIwIDAgMSAxIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxIiBoZWpZ2h0PSIxIiBmaWxsPSIjZjVmNWY1Ii8+PC9zdmc+',
                         rows: 4
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Enable Preload' | t('picture-tag'),
-                        name: 'enablePreload',
+                        name: 'settings[enablePreload]',
                         on: settings.enablePreload ?? false
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Enable Sizes' | t('picture-tag'),
-                        name: 'enableSizes',
-                        on: settings.enableSizes ?? false
+                        name: 'settings[enableSizes]',
+                        on: settings.enableSizes ?? true
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Enable Srcset' | t('picture-tag'),
-                        name: 'enableSrcset',
-                        on: settings.enableSrcset ?? false
+                        name: 'settings[enableSrcset]',
+                        on: settings.enableSrcset ?? true
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Enable Fetch Priority' | t('picture-tag'),
-                        name: 'enableFetchPriority',
-                        on: settings.enableFetchPriority ?? false
+                        name: 'settings[enableFetchPriority]',
+                        on: settings.enableFetchPriority ?? true
                     }) }}
                 </div>
             </div>
