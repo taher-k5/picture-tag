@@ -61,8 +61,17 @@ class TemplateService extends Component
         $fallbackSrcset = $fallbackSource['sources']['default'] ?? '';
         $fallbackSrc = $image->getUrl($fallbackTransform, true) ?: $image->getUrl();
 
-        $imgAttributes = $this->buildImgAttributes($image, $options, $fallbackSrcset, $sizes);
-        $imgAttributes['src'] = $this->normalizeUrl($fallbackSrc);
+        // $imgAttributes = $this->buildImgAttributes($image, $options, $fallbackSrcset, $sizes);
+        // $imgAttributes['src'] = $this->normalizeUrl($fallbackSrc);
+
+		$imgAttributes = $this->buildImgAttributes($image, $options, $fallbackSrcset, $sizes);
+		// Handle null fallbackSrc
+		if ($fallbackSrc !== null && is_string($fallbackSrc)) {
+			$imgAttributes['src'] = $this->normalizeUrl($fallbackSrc);
+		} else {
+			Craft::warning('Fallback URL is null for image ID: ' . ($image->id ?? 'unknown'), __METHOD__);
+			$imgAttributes['src'] = $imageService->generateLazyPlaceholder($fallbackTransform['width'] ?? 480, $fallbackTransform['height'] ?? 320);
+		}
 
         $html = '<picture' . Html::renderTagAttributes($pictureAttributes) . '>' . "\n";
         $html .= $sourceTags;

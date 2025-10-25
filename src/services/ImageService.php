@@ -28,6 +28,8 @@ class ImageService extends Component
         }
 
         $breakpoints = $settings->ensureArray($options['breakpoints'] ?? $settings->getDefaultBreakpoints(), $settings->getDefaultBreakpoints());
+        // Ensure all breakpoint values are integers
+        $breakpoints = array_map('intval', $breakpoints);
         $defaultTransforms = $settings->getDefaultTransforms();
         $userTransforms = $settings->ensureArray($options['transforms'] ?? [], []);
         $artDirection = $settings->ensureArray($options['artDirection'] ?? [], []);
@@ -99,24 +101,24 @@ class ImageService extends Component
 			return '';
 		}
 
-		$transform = is_array($transform) ? $transform : [];
-		$srcset = [];
-		$densityMultipliers = [1, 1.5, 2, 3];
-		$imageWidth = (int) $image->getWidth();
-		$baseWidth = isset($transform['width']) && (int)$transform['width'] > 0
-			? (int)$transform['width']
-			: ($maxWidth > 0 ? $maxWidth : min(800, $imageWidth));
-		if ($baseWidth <= 0) {
-			$baseWidth = min(800, $imageWidth);
-		}
-		
-		foreach ($densityMultipliers as $density) {
-			$width = (int) round($baseWidth * $density);
-			
-			// Don't exceed original image width
-			if ($width > $imageWidth) {
-				break;
-			}
+        $transform = is_array($transform) ? $transform : [];
+        $srcset = [];
+        $densityMultipliers = [1, 1.5, 2, 3];
+        $imageWidth = (int) $image->getWidth();
+        $baseWidth = isset($transform['width']) && (int)$transform['width'] > 0
+            ? (int)$transform['width']
+            : ($maxWidth > 0 ? $maxWidth : min(800, $imageWidth));
+        if ($baseWidth <= 0) {
+            $baseWidth = min(800, $imageWidth);
+        }
+        
+        foreach ($densityMultipliers as $density) {
+            $width = (int) round($baseWidth * $density);
+            
+            // Don't exceed original image width
+            if ($width > $imageWidth) {
+                break;
+            }
 
 			$densityTransform = array_merge($transform, ['width' => $width]);
 			
@@ -148,11 +150,11 @@ class ImageService extends Component
         $count = count($breakpointArray);
 
         for ($index = 0; $index < $count; $index++) {
-            $width = $breakpointArray[$index];
+            $width = (int)$breakpointArray[$index];
             if ($index === 0) {
                 $sizes[] = "(max-width: {$width}px) 100vw";
             } else {
-                $prevWidth = $breakpointArray[$index - 1];
+                $prevWidth = (int)$breakpointArray[$index - 1];
                 $minWidth = $prevWidth + 1;
                 if ($index === $count - 1) {
                     $sizes[] = "(min-width: {$minWidth}px) {$width}px";
@@ -168,17 +170,17 @@ class ImageService extends Component
 	/**
 	 * Generate media query for breakpoint
 	 */
-	public function generateMediaQuery(string $breakpointName, int $width, array $allBreakpoints): string
-	{
-		$breakpointArray = array_values($allBreakpoints);
-		sort($breakpointArray);
-		$index = array_search($width, $breakpointArray);
+    public function generateMediaQuery(string $breakpointName, int $width, array $allBreakpoints): string
+    {
+        $breakpointArray = array_map('intval', array_values($allBreakpoints));
+        sort($breakpointArray);
+        $index = array_search($width, $breakpointArray, true);
 
 		if ($index === 0) {
 			return "(max-width: {$width}px)";
 		}
 
-        $prevWidth = $breakpointArray[$index - 1];
+        $prevWidth = (int)$breakpointArray[$index - 1];
         $minWidth = $prevWidth + 1;
         if ($index === count($breakpointArray) - 1) {
             return "(min-width: {$minWidth}px)";
@@ -196,7 +198,7 @@ class ImageService extends Component
 		$transforms = $settings ? $settings->getDefaultTransforms() : [];
 				// Find the closest transform
 		foreach ($transforms as $transform) {
-			if (is_array($transform) && isset($transform['width']) && $transform['width'] >= $width) {
+			if (is_array($transform) && isset($transform['width']) && (int)$transform['width'] >= $width) {
 				return $transform;
 			}
 		}
