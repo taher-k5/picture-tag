@@ -2,6 +2,7 @@
 
 namespace taherkathiriya\craftpicturetag\models;
 
+use Craft;
 use craft\base\Model;
 
 /**
@@ -90,13 +91,22 @@ class Settings extends Model
             if (!empty($width) && (!is_numeric($width) || $width <= 0)) {
                 $this->addError($attribute, "Breakpoint '{$name}' must be a positive number.");
             }
+            if (is_numeric($width)) {
+                $this->$attribute[$name] = (int)$width;
+            }
         }
     }
 
     public function validateTransforms($attribute, $params): void
     {
-        // If transforms are disabled or empty, use defaults or empty array
-        if (!$this->enableDefaultTransforms || !is_array($this->$attribute)) {
+        if (!$this->enableDefaultTransforms) {
+            $this->$attribute = [];
+            Craft::info('Default transforms cleared due to enableDefaultTransforms being false', __METHOD__);
+            return;
+        }
+
+        if (!is_array($this->$attribute)) {
+            $this->addError($attribute, 'Transforms must be an array.');
             return;
         }
 
@@ -116,6 +126,17 @@ class Settings extends Model
 
             if (isset($transform['quality']) && !empty($transform['quality']) && (!is_numeric($transform['quality']) || $transform['quality'] < 1 || $transform['quality'] > 100)) {
                 $this->addError($attribute, "Transform '{$name}' quality must be between 1 and 100.");
+            }
+
+            // Cast values to integers
+            if (isset($transform['width'])) {
+                $this->$attribute[$name]['width'] = (int)$transform['width'];
+            }
+            if (isset($transform['height'])) {
+                $this->$attribute[$name]['height'] = (int)$transform['height'];
+            }
+            if (isset($transform['quality'])) {
+                $this->$attribute[$name]['quality'] = (int)$transform['quality'];
             }
         }
     }
@@ -141,10 +162,22 @@ class Settings extends Model
 
     public function getDefaultTransforms(): array
     {
-        if ($this->enableDefaultTransforms) {
-            return $this->ensureArray($this->defaultTransforms, self::PLACEHOLDER_DEFAULT_TRANSFORMS);
+        if (!$this->enableDefaultTransforms) {
+            return [];
         }
-        return self::PLACEHOLDER_DEFAULT_TRANSFORMS;
+        $transforms = $this->ensureArray($this->defaultTransforms, self::PLACEHOLDER_DEFAULT_TRANSFORMS);
+        foreach ($transforms as $name => $transform) {
+            if (isset($transform['width'])) {
+                $transforms[$name]['width'] = (int)$transform['width'];
+            }
+            if (isset($transform['height'])) {
+                $transforms[$name]['height'] = (int)$transform['height'];
+            }
+            if (isset($transform['quality'])) {
+                $transforms[$name]['quality'] = (int)$transform['quality'];
+            }
+        }
+        return $transforms;
     }
 
     public function getBreakpointForWidth(int $width): ?string
@@ -170,7 +203,60 @@ class Settings extends Model
 
     public function getTransformForBreakpoint(string $breakpoint): ?array
     {
+        if (!$this->enableDefaultTransforms) {
+            return null;
+        }
         $transforms = $this->getDefaultTransforms();
         return $transforms[$breakpoint] ?? null;
+    }
+
+    /**
+     * Save settings to project config
+     */
+    public function saveSettings(): bool
+    {
+        // Force clear defaultTransforms if enableDefaultTransforms is false
+        if (!$this->enableDefaultTransforms) {
+            $this->defaultTransforms = [];
+        }
+
+        $projectConfig = Craft::$app->getProjectConfig();
+        $pluginHandle = 'picture-tag';
+        $configData = [
+            'defaultBreakpoints' => $this->defaultBreakpoints,
+            'defaultTransforms' => $this->enableDefaultTransforms ? $this->defaultTransforms : [],
+            'enableDefaultTransforms' => $this->enableDefaultTransforms,
+            'enableWebP' => $this->enableWebP,
+            'enableAvif' => $this->enableAvif,
+            'webpQuality' => $this->webpQuality,
+            'avifQuality' => $this->avifQuality,
+            'enableLazyLoading' => $this->enableLazyLoading,
+            'lazyLoadingClass' => $this->lazyLoadingClass,
+            'lazyPlaceholder' => $this->lazyPlaceholder,
+            'enablePreload' => $this->enablePreload,
+            'enableSizes' => $this->enableSizes,
+            'enableSrcset' => $this->enableSrcset,
+            'enableFetchPriority' => $this->enableFetchPriority,
+            'requireAltText' => $this->requireAltText,
+            'defaultAltText' => $this->defaultAltText,
+            'enableArtDirection' => $this->enableArtDirection,
+            'enableCropping' => $this->enableCropping,
+            'enableFocalPoint' => $this->enableFocalPoint,
+            'enableAspectRatio' => $this->enableAspectRatio,
+            'includeDefaultStyles' => $this->includeDefaultStyles,
+            'defaultPictureClass' => $this->defaultPictureClass,
+            'defaultImageClass' => $this->defaultImageClass,
+            'enableSvgOptimization' => $this->enableSvgOptimization,
+            'inlineSvg' => $this->inlineSvg,
+            'svgMaxSize' => $this->svgMaxSize,
+            'enableCache' => $this->enableCache,
+            'cacheDuration' => $this->cacheDuration,
+            'enableDebug' => $this->enableDebug,
+            'showTransformInfo' => $this->showTransformInfo,
+        ];
+
+        Craft::info('Saving picture-tag settings: ' . print_r($configData, true), __METHOD__);
+        $projectConfig->set("plugins.{$pluginHandle}.settings", $configData);
+        return true;
     }
 }

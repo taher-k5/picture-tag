@@ -119,7 +119,7 @@
 
                 {# Breakpoints Tab #}
                 <div id="breakpoints" class="tab-content {% if selectedTab != 'breakpoints' %}hidden{% endif %}" data-tab-content="breakpoints">
-                    {% for key, value in settings.getDefaultBreakpoints() %}
+                    {% for key, value in settings.PLACEHOLDER_DEFAULT_BREAKPOINTS %}
                         {{ forms.textField({
                             label: key | capitalize | t('picture-tag'),
                             name: 'settings[defaultBreakpoints][' ~ key | e('html') ~ ']',
@@ -139,41 +139,40 @@
                         name: 'settings[enableDefaultTransforms]',
                         on: settings.enableDefaultTransforms ?? false
                     }) }}
-                    {% for key, transform in settings.getDefaultTransforms() %}
-                        <h3>{{ key | capitalize | t('picture-tag') }}</h3>
-                        <div class="flex items-center gap-xl">
-                            {{ forms.textField({
-                                label: 'Width' | t('picture-tag'),
-                                name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][width]',
-                                placeholder: settings.PLACEHOLDER_DEFAULT_TRANSFORMS[key].width,
-                                value: settings.getDefaultTransforms()[key].width is not null ? settings.getDefaultTransforms()[key].width : '',
-                                errors: settings.getErrors('defaultTransforms.' ~ key ~ '.width') ?? [],
-                                required: true,
-                                disabled: not settings.enableDefaultTransforms,
-                                instructions: 'In pixels' | t('picture-tag')
-                            }) }}
-                            {{ forms.textField({
-                                label: 'Height' | t('picture-tag'),
-                                name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][height]',
-                                placeholder: settings.PLACEHOLDER_DEFAULT_TRANSFORMS[key].height,
-                                value: settings.getDefaultTransforms()[key].height is not null ? settings.getDefaultTransforms()[key].height : '',
-                                errors: settings.getErrors('defaultTransforms.' ~ key ~ '.height') ?? [],
-                                required: true,
-                                disabled: not settings.enableDefaultTransforms,
-                                instructions: 'In pixels' | t('picture-tag')
-                            }) }}
-                            {{ forms.textField({
-                                label: 'Quality' | t('picture-tag'),
-                                name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][quality]',
-                                placeholder: settings.PLACEHOLDER_DEFAULT_TRANSFORMS[key].quality,
-                                value: settings.getDefaultTransforms()[key].quality is not null ? settings.getDefaultTransforms()[key].quality : '',
-                                errors: settings.getErrors('defaultTransforms.' ~ key ~ '.quality') ?? [],
-                                required: true,
-                                disabled: not settings.enableDefaultTransforms,
-                                instructions: '0-100' | t('picture-tag')
-                            }) }}
-                        </div>
-                    {% endfor %}
+                    {% if settings.enableDefaultTransforms %}
+                        {% for key, transform in settings.PLACEHOLDER_DEFAULT_TRANSFORMS %}
+                            <h3>{{ key | capitalize | t('picture-tag') }}</h3>
+                            <div class="flex items-center gap-xl">
+                                {{ forms.textField({
+                                    label: 'Width' | t('picture-tag'),
+                                    name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][width]',
+                                    placeholder: settings.PLACEHOLDER_DEFAULT_TRANSFORMS[key].width,
+                                    value: settings.defaultTransforms[key].width is defined ? settings.defaultTransforms[key].width : '',
+                                    errors: settings.getErrors('defaultTransforms.' ~ key ~ '.width') ?? [],
+                                    required: true,
+                                    instructions: 'In pixels' | t('picture-tag')
+                                }) }}
+                                {{ forms.textField({
+                                    label: 'Height' | t('picture-tag'),
+                                    name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][height]',
+                                    placeholder: settings.PLACEHOLDER_DEFAULT_TRANSFORMS[key].height,
+                                    value: settings.defaultTransforms[key].height is defined ? settings.defaultTransforms[key].height : '',
+                                    errors: settings.getErrors('defaultTransforms.' ~ key ~ '.height') ?? [],
+                                    required: true,
+                                    instructions: 'In pixels' | t('picture-tag')
+                                }) }}
+                                {{ forms.textField({
+                                    label: 'Quality' | t('picture-tag'),
+                                    name: 'settings[defaultTransforms][' ~ key | e('html') ~ '][quality]',
+                                    placeholder: settings.PLACEHOLDER_DEFAULT_TRANSFORMS[key].quality,
+                                    value: settings.defaultTransforms[key].quality is defined ? settings.defaultTransforms[key].quality : '',
+                                    errors: settings.getErrors('defaultTransforms.' ~ key ~ '.quality') ?? [],
+                                    required: true,
+                                    instructions: '0-100' | t('picture-tag')
+                                }) }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
                 </div>
 
                 {# Performance Tab #}

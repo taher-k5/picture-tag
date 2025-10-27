@@ -5,13 +5,14 @@ namespace taherkathiriya\craftpicturetag\controllers;
 use Craft;
 use craft\web\Controller;
 use taherkathiriya\craftpicturetag\PictureTag;
+use taherkathiriya\craftpicturetag\models\Settings;
 use yii\web\Response;
 
 
 class SettingsController extends Controller
 {
     /**
-     * @inerhitdoc
+     * @inheritdoc
      */
     public function beforeAction($action): bool
     {
@@ -26,7 +27,7 @@ class SettingsController extends Controller
     public function actionEdit(): ?Response
     {
         $settings = PictureTag::$plugin->getSettings();
-        \Craft::info('Loaded settings: ' . print_r($settings->toArray(), true), __METHOD__); // Debug log
+        Craft::info('Loaded settings: ' . print_r($settings->toArray(), true), __METHOD__);
 
         return $this->renderTemplate('picture-tag/_settings', [
             'settings' => $settings,
@@ -42,10 +43,11 @@ class SettingsController extends Controller
         $this->requirePostRequest();
         $this->requireAdmin(false);
 
-        $settings = Craft::$app->getRequest()->getBodyParam('settings', []);
-        \Craft::info('Settings received: ' . print_r($settings, true), __METHOD__); // Debug log
+        $settings = new Settings();
+        $formData = Craft::$app->getRequest()->getBodyParam('settings', []);
+        Craft::info('Form data submitted: ' . print_r($formData, true), __METHOD__);
 
-        if (!is_array($settings)) {
+        if (!is_array($formData)) {
             Craft::$app->getSession()->setError(Craft::t('picture-tag', 'Invalid settings data.'));
             return $this->renderTemplate('picture-tag/_settings', [
                 'settings' => PictureTag::$plugin->getSettings(),
@@ -53,33 +55,19 @@ class SettingsController extends Controller
             ]);
         }
 
-        $plugin = PictureTag::$plugin;
-        $pluginSettings = $plugin->getSettings();
+        $settings->setAttributes($formData, false);
 
-        // Set and validate settings
-        $pluginSettings->setAttributes($settings, false);
-        if (!$pluginSettings->validate()) {
-            \Craft::info('Validation errors: ' . print_r($pluginSettings->getErrors(), true), __METHOD__); // Debug log
-            Craft::$app->getSession()->setError(Craft::t('picture-tag', 'Couldn’t save settings due to validation errors: {errors}', [
-                'errors' => implode(', ', array_merge(...array_values($pluginSettings->getErrors())))
-            ]));
-            return $this->renderTemplate('picture-tag/_settings', [
-                'settings' => $pluginSettings,
-                'readOnly' => !Craft::$app->getConfig()->getGeneral()->allowAdminChanges,
-            ]);
-        }
-
-        // Save the settings
-        if (Craft::$app->getPlugins()->savePluginSettings($plugin, $settings)) {
-            \Craft::info('Settings saved successfully: ' . print_r($settings, true), __METHOD__); // Debug log
+        if ($settings->saveSettings()) {
             Craft::$app->getSession()->setNotice(Craft::t('picture-tag', 'Settings saved.'));
             return $this->redirectToPostedUrl();
         }
 
-        \Craft::info('Failed to save settings.', __METHOD__); // Debug log
-        Craft::$app->getSession()->setError(Craft::t('picture-tag', 'Couldn’t save settings.'));
+        Craft::info('Validation errors: ' . print_r($settings->getErrors(), true), __METHOD__);
+        Craft::$app->getSession()->setError(Craft::t('picture-tag', 'Couldn’t save settings due to validation errors: {errors}', [
+            'errors' => implode(', ', array_merge(...array_values($settings->getErrors())))
+        ]));
         return $this->renderTemplate('picture-tag/_settings', [
-            'settings' => $pluginSettings,
+            'settings' => $settings,
             'readOnly' => !Craft::$app->getConfig()->getGeneral()->allowAdminChanges,
         ]);
     }
