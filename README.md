@@ -12,9 +12,9 @@ A powerful and advanced Craft CMS plugin for handling responsive images with Web
 - **SVG Support**: Inline SVG rendering or as img tags with optimization
 
 ### 🎨 **Flexible Template Functions**
-- `picture()` - Full responsive picture element
-- `img()` - Simple responsive img tag
-- `svg()` - SVG handling with inline or img tag options
+- `picture_tag()` - Full responsive picture element
+- `img_tag()` - Simple responsive img tag
+- `svg_tag()` - SVG handling with inline or img tag options
 - `picture_options()` - Fluent API for building options
 - `responsive_srcset()` - Generate srcset strings
 - `responsive_sizes()` - Generate sizes attributes
@@ -51,26 +51,26 @@ composer require taher-kathiriya/craft-picture-tag
 
 ```twig
 {# Simple picture tag #}
-{{ picture(image) }}
+{{ picture_tag(image) }}
 
 {# Picture with custom options #}
-{{ picture(image, {
+{{ picture_tag(image, {
     class: 'hero-image',
     loading: 'eager',
     alt: 'Hero image description'
 }) }}
 
-{# Simple img tag #}
-{{ img(image, { width: 800, height: 600 }) }}
+{# Simple image tag #}
+{{ img_tag(image, { width: 800, height: 600 }) }}
 
 {# SVG handling #}
-{{ svg(svgAsset, { inline: true }) }}
+{{ svg_tag(svgAsset, { inline: true }) }}
 ```
 
 ### Advanced Usage with Art Direction
 
-```twig
-{{ picture(image, {
+<!-- ```twig
+{{ picture_image, {
     artDirection: {
         mobile: { width: 480, height: 320, mode: 'crop' },
         tablet: { width: 768, height: 400, mode: 'crop' },
@@ -81,11 +81,11 @@ composer require taher-kathiriya/craft-picture-tag
         '(min-width: 769px) 50vw'
     ]
 }) }}
-```
+``` -->
 
 ### Using the Fluent API
 
-```twig
+<!-- ```twig
 {% set options = picture_options()
     .pictureClass('gallery-image')
     .imageClass('gallery-img')
@@ -97,7 +97,7 @@ composer require taher-kathiriya/craft-picture-tag
     .transformFor('desktop', { width: 800, height: 600 })
 %}
 {{ picture(image, options.toArray()) }}
-```
+``` -->
 
 ## Configuration
 
@@ -186,7 +186,7 @@ Renders a complete `<picture>` element with responsive sources.
 }
 ```
 
-### `img(image, options)`
+### `img_tag(image, options)`
 
 Renders a simple responsive `<img>` tag.
 
@@ -196,7 +196,7 @@ Renders a simple responsive `<img>` tag.
 
 ### `svg(asset, options)`
 
-Handles SVG assets with inline or img tag options.
+Handles SVG assets with inline or image tag options.
 
 **Parameters:**
 - `asset` (Asset): The SVG asset

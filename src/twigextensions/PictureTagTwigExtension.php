@@ -43,9 +43,9 @@ class PictureTagTwigExtension extends AbstractExtension
 	public function getFunctions(): array
 	{
 		return [
-			new TwigFunction('picture', [$this, 'picture'], ['is_safe' => ['html']]),
+			// new TwigFunction('picture', [$this, 'picture'], ['is_safe' => ['html']]),
 			new TwigFunction('picture_tag', [$this, 'picture'], ['is_safe' => ['html']]),
-			new TwigFunction('img', [$this, 'img'], ['is_safe' => ['html']]),
+			// new TwigFunction('img', [$this, 'img'], ['is_safe' => ['html']]),
 			new TwigFunction('img_tag', [$this, 'img'], ['is_safe' => ['html']]),
 			// new TwigFunction('svg', [$this, 'svg'], ['is_safe' => ['html']]),
 			new TwigFunction('svg_tag', [$this, 'svg'], ['is_safe' => ['html']]),
@@ -107,7 +107,7 @@ class PictureTagTwigExtension extends AbstractExtension
 	}
 
 	/**
-	 * Render img tag
+	 * Render image tag
 	 */
 	public function img($image, array $options = []): Markup
 	{
