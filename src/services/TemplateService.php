@@ -87,32 +87,92 @@ class TemplateService extends Component
 	public function renderImg(Asset $image, array $options = []): Markup
 	{
 		if (!$image || $image->kind !== Asset::KIND_IMAGE) {
-            Craft::warning('Invalid image in renderImg', __METHOD__);
+            return new Markup('', Craft::$app->charset);
+        }
+
+        $settings = $this->getSettingsSafe();
+        $imageService = $this->getImageServiceSafe();
+        if (!$settings || !$imageService) {
 			return new Markup('', Craft::$app->charset);
 		}
 
 		$options = $this->normalizeOptions($options);
-		
-		// Generate srcset
-		$imageService = $this->getImageServiceSafe();
-		$settings = $this->getSettingsSafe();
-		if (!$imageService || !$settings) {
-            Craft::warning('Missing image service or settings in renderImg', __METHOD__);
-			return new Markup('', Craft::$app->charset);
-		}
 
-        $transform = $options['transform'] ?? ($settings->enableDefaultTransforms ? $settings->getDefaultTransforms()['desktop'] ?? [] : []);
-		$srcset = $imageService->generateSrcSet($image, $transform, $transform['width'] ?? 800);
-		
-		// Generate sizes
-		$sizes = $imageService->generateSizes($settings->getDefaultBreakpoints(), $options['sizes'] ?? []);
-		
-		// Build img attributes
-		$imgAttributes = $this->buildImgAttributes($image, $options, $srcset, $sizes);
-		
+        $largestBreakpoint = array_key_last($settings->getDefaultBreakpoints());
+        $transform = $this->getTransformForBreakpoint($image, $options, $largestBreakpoint);
+
+        $srcsetParts = [];
+
+        // AVIF (highest priority)
+        if ($options['enableAvif'] && $imageService->supportsAvif($image)) {
+            $avifTransform = array_merge($transform, [
+                'format'  => 'avif',
+                'quality' => $settings->avifQuality ?? 75,
+            ]);
+            $avifSrcset = $imageService->generateSrcSet($image, $avifTransform, $transform['width']);
+            if ($avifSrcset) {
+                $srcsetParts[] = $avifSrcset;
+            }
+        }
+
+        // WebP (second priority)
+        if ($options['enableWebP'] && $imageService->supportsWebP($image)) {
+            $webpTransform = array_merge($transform, [
+                'format'  => 'webp',
+                'quality' => $options['quality'] ?? $settings->webpQuality ?? 80,
+            ]);
+            $webpSrcset = $imageService->generateSrcSet($image, $webpTransform, $transform['width']);
+            if ($webpSrcset) {
+                $srcsetParts[] = $webpSrcset;
+            }
+        }
+
+        // PNG/JPG (fallback only)
+        $defaultSrcset = $imageService->generateSrcSet($image, $transform, $transform['width']);
+        if ($defaultSrcset) {
+            $srcsetParts[] = $defaultSrcset;
+        }
+
+        $fullSrcset = implode(', ', $srcsetParts);
+
+        $sizes = $imageService->generateSizes($settings->getDefaultBreakpoints(), $options['sizes'] ?? []);
+
+        $imgAttributes = $this->buildImgAttributes($image, $options, $fullSrcset, $sizes);
+
+        $srcUrl = $image->getUrl($transform, true) ?: $image->getUrl();   // Craft auto-adds .webp/.avif if supported
+        $imgAttributes['src'] = $this->normalizeUrl($srcUrl);
+
 		$html = '<img' . Html::renderTagAttributes($imgAttributes) . '>';
 
 		return new Markup($html, Craft::$app->charset);
+	}
+
+    /**
+     * Get transform for a given breakpoint (user → default → auto)
+     */
+    private function getTransformForBreakpoint(Asset $image, array $options, string $breakpoint): array
+    {
+        $settings = $this->getSettingsSafe();
+        $userTransforms = $settings->ensureArray($options['transforms'] ?? [], []);
+        $defaultTransforms = $settings->getDefaultTransforms();
+
+        $transform = $userTransforms[$breakpoint] ??
+                    ($settings->enableDefaultTransforms ? ($defaultTransforms[$breakpoint] ?? []) : []);
+
+        $width = (int)($settings->getDefaultBreakpoints()[$breakpoint] ?? 1440);
+
+        if (empty($transform['width'])) {
+            $transform['width'] = $width;
+        }
+        if (empty($transform['height'])) {
+            $aspect = $image->getWidth() / ($image->getHeight() ?: 1) ?: 1.5;
+            $transform['height'] = (int)round($transform['width'] / $aspect);
+        }
+        if (empty($transform['quality'])) {
+            $transform['quality'] = $options['quality'] ?? $settings->webpQuality ?? 80;
+        }
+
+        return $transform;
 	}
 
 	/**
