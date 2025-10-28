@@ -6,10 +6,9 @@
 
 {% set tabs = {
     'general': { label: 'General Settings'|t('picture-tag'), url: '#general' },
-    'breakpoints': { label: "Breakpoints"|t('picture-tag'), url: '#breakpoints' },
-    'transforms': { label: "Transforms"|t('picture-tag'), url: '#transforms' },
     'performance': { label: "Performance"|t('picture-tag'), url: '#performance' },
 } %}
+    {# 'transforms': { label: "Transforms"|t('picture-tag'), url: '#transforms' },  #}
 
 {# Determine the active tab #}
 {% set selectedTab = craft.app.request.getQueryParam('tab') | default('general') %}
@@ -80,30 +79,9 @@
                         size: 5
                     }) }}
                     {{ forms.lightswitchField({
-                        label: 'Require Alt Text' | t('picture-tag'),
-                        name: 'settings[requireAltText]',
-                        on: settings.requireAltText ?? true
-                    }) }}
-                    {{ forms.textField({
-                        label: 'Default Alt Text' | t('picture-tag'),
-                        name: 'settings[defaultAltText]',
-                        placeholder: settings.PLACEHOLDER_DEFAULT_ALT_TEXT,
-                        value: settings.defaultAltText is not null ? settings.defaultAltText : '',
-                        errors: settings.getErrors('defaultAltText') ?? []
-                    }) }}
-                    {{ forms.lightswitchField({
-                        label: 'Enable Cache' | t('picture-tag'),
-                        name: 'settings[enableCache]',
-                        on: settings.enableCache ?? true
-                    }) }}
-                    {{ forms.textField({
-                        label: 'Cache Duration (seconds)' | t('picture-tag'),
-                        name: 'settings[cacheDuration]',
-                        placeholder: settings.PLACEHOLDER_CACHE_DURATION,
-                        value: settings.cacheDuration is not null ? settings.cacheDuration : '',
-                        errors: settings.getErrors('cacheDuration') ?? [],
-                        size: 5,
-                        instructions: 'Duration in seconds' | t('picture-tag')
+                        label: 'Enable Preload' | t('picture-tag'),
+                        name: 'settings[enablePreload]',
+                        on: settings.enablePreload ?? false
                     }) }}
                     {{ forms.lightswitchField({
                         label: 'Enable Debug' | t('picture-tag'),
@@ -117,23 +95,8 @@
                     }) }}
                 </div>
 
-                {# Breakpoints Tab #}
-                <div id="breakpoints" class="tab-content {% if selectedTab != 'breakpoints' %}hidden{% endif %}" data-tab-content="breakpoints">
-                    {% for key, value in settings.PLACEHOLDER_DEFAULT_BREAKPOINTS %}
-                        {{ forms.textField({
-                            label: key | capitalize | t('picture-tag'),
-                            name: 'settings[defaultBreakpoints][' ~ key | e('html') ~ ']',
-                            placeholder: settings.PLACEHOLDER_DEFAULT_BREAKPOINTS[key],
-                            value: settings.getDefaultBreakpoints()[key] is not null ? settings.getDefaultBreakpoints()[key] : '',
-                            errors: settings.getErrors('defaultBreakpoints.' ~ key) ?? [],
-                            required: true,
-                            instructions: 'Pixel width for breakpoint' | t('picture-tag')
-                        }) }}
-                    {% endfor %}
-                </div>
-
                 {# Transforms Tab #}
-                <div id="transforms" class="tab-content {% if selectedTab != 'transforms' %}hidden{% endif %}" data-tab-content="transforms">
+                {# <div id="transforms" class="tab-content {% if selectedTab != 'transforms' %}hidden{% endif %}" data-tab-content="transforms">
                     {{ forms.lightswitchField({
                         label: 'Enable Default Transforms' | t('picture-tag'),
                         name: 'settings[enableDefaultTransforms]',
@@ -173,7 +136,7 @@
                             </div>
                         {% endfor %}
                     {% endif %}
-                </div>
+                </div> #}
 
                 {# Performance Tab #}
                 <div id="performance" class="tab-content {% if selectedTab != 'performance' %}hidden{% endif %}" data-tab-content="performance">
@@ -197,24 +160,30 @@
                         rows: 4
                     }) }}
                     {{ forms.lightswitchField({
-                        label: 'Enable Preload' | t('picture-tag'),
-                        name: 'settings[enablePreload]',
-                        on: settings.enablePreload ?? false
+                        label: 'Require Alt Text' | t('picture-tag'),
+                        name: 'settings[requireAltText]',
+                        on: settings.requireAltText ?? true
+                    }) }}
+                    {{ forms.textField({
+                        label: 'Default Alt Text' | t('picture-tag'),
+                        name: 'settings[defaultAltText]',
+                        placeholder: settings.PLACEHOLDER_DEFAULT_ALT_TEXT,
+                        value: settings.defaultAltText is not null ? settings.defaultAltText : '',
+                        errors: settings.getErrors('defaultAltText') ?? []
                     }) }}
                     {{ forms.lightswitchField({
-                        label: 'Enable Sizes' | t('picture-tag'),
-                        name: 'settings[enableSizes]',
-                        on: settings.enableSizes ?? true
+                        label: 'Enable Cache' | t('picture-tag'),
+                        name: 'settings[enableCache]',
+                        on: settings.enableCache ?? true
                     }) }}
-                    {{ forms.lightswitchField({
-                        label: 'Enable Srcset' | t('picture-tag'),
-                        name: 'settings[enableSrcset]',
-                        on: settings.enableSrcset ?? true
-                    }) }}
-                    {{ forms.lightswitchField({
-                        label: 'Enable Fetch Priority' | t('picture-tag'),
-                        name: 'settings[enableFetchPriority]',
-                        on: settings.enableFetchPriority ?? true
+                    {{ forms.textField({
+                        label: 'Cache Duration (seconds)' | t('picture-tag'),
+                        name: 'settings[cacheDuration]',
+                        placeholder: settings.PLACEHOLDER_CACHE_DURATION,
+                        value: settings.cacheDuration is not null ? settings.cacheDuration : '',
+                        errors: settings.getErrors('cacheDuration') ?? [],
+                        size: 5,
+                        instructions: 'Duration in seconds' | t('picture-tag')
                     }) }}
                 </div>
             </div>

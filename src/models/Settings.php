@@ -10,13 +10,6 @@ use craft\base\Model;
  */
 class Settings extends Model
 {
-    // Placeholder constants (not saved to project.yaml)
-    public const PLACEHOLDER_DEFAULT_BREAKPOINTS = [
-        'mobile' => 480,
-        'tablet' => 768,
-        'desktop' => 1024,
-        'large' => 1440,
-    ];
     public const PLACEHOLDER_DEFAULT_TRANSFORMS = [
         'mobile' => ['width' => 480, 'height' => 320, 'quality' => 80],
         'tablet' => ['width' => 768, 'height' => 512, 'quality' => 85],
@@ -34,7 +27,6 @@ class Settings extends Model
     public const PLACEHOLDER_CACHE_DURATION = 86400;
 
     // Main value properties (saved to project.yaml)
-    public array $defaultBreakpoints = self::PLACEHOLDER_DEFAULT_BREAKPOINTS;
     public array $defaultTransforms = [];
     public bool $enableDefaultTransforms = false;
     public bool $enableWebP = true;
@@ -75,26 +67,6 @@ class Settings extends Model
             [['defaultBreakpoints'], 'validateBreakpoints', 'skipOnEmpty' => true],
             [['defaultTransforms'], 'validateTransforms', 'skipOnEmpty' => true, 'when' => fn() => $this->enableDefaultTransforms],
         ];
-    }
-
-    public function validateBreakpoints($attribute, $params): void
-    {
-        if (!is_array($this->$attribute)) {
-            $this->addError($attribute, 'Breakpoints must be an array.');
-            return;
-        }
-
-        foreach ($this->$attribute as $name => $width) {
-            if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
-                $this->addError($attribute, "Breakpoint name '{$name}' must be alphanumeric.");
-            }
-            if (!empty($width) && (!is_numeric($width) || $width <= 0)) {
-                $this->addError($attribute, "Breakpoint '{$name}' must be a positive number.");
-            }
-            if (is_numeric($width)) {
-                $this->$attribute[$name] = (int)$width;
-            }
-        }
     }
 
     public function validateTransforms($attribute, $params): void
@@ -155,11 +127,6 @@ class Settings extends Model
         return $fallback;
     }
 
-    public function getDefaultBreakpoints(): array
-    {
-        return $this->ensureArray($this->defaultBreakpoints, self::PLACEHOLDER_DEFAULT_BREAKPOINTS);
-    }
-
     public function getDefaultTransforms(): array
     {
         if (!$this->enableDefaultTransforms) {
@@ -180,36 +147,6 @@ class Settings extends Model
         return $transforms;
     }
 
-    public function getBreakpointForWidth(int $width): ?string
-    {
-        $breakpoints = $this->getDefaultBreakpoints();
-        if (empty($breakpoints)) {
-            return null;
-        }
-
-        $keys = array_keys($breakpoints);
-        $values = array_values($breakpoints);
-
-        for ($i = 0; $i < count($values); $i++) {
-            if ($i == 0 && $width <= $values[$i]) {
-                return $keys[$i]; // Mobile: 0 - 480px
-            } elseif ($i > 0 && $width > $values[$i - 1] && $width <= $values[$i]) {
-                return $keys[$i]; // Tablet: 481 - 768px, Desktop: 769 - 1024px, Large: 1025 - 1440px
-            }
-        }
-
-        return $keys[count($keys) - 1]; // Beyond large: 1441px+
-    }
-
-    public function getTransformForBreakpoint(string $breakpoint): ?array
-    {
-        if (!$this->enableDefaultTransforms) {
-            return null;
-        }
-        $transforms = $this->getDefaultTransforms();
-        return $transforms[$breakpoint] ?? null;
-    }
-
     /**
      * Save settings to project config
      */
@@ -223,7 +160,6 @@ class Settings extends Model
         $projectConfig = Craft::$app->getProjectConfig();
         $pluginHandle = 'picture-tag';
         $configData = [
-            'defaultBreakpoints' => $this->defaultBreakpoints,
             'defaultTransforms' => $this->enableDefaultTransforms ? $this->defaultTransforms : [],
             'enableDefaultTransforms' => $this->enableDefaultTransforms,
             'enableWebP' => $this->enableWebP,

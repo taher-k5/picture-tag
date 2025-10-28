@@ -48,15 +48,6 @@ class PictureOptions extends Model
     }
 
     /**
-     * Set breakpoint transform
-     */
-    public function setBreakpointTransform(string $breakpoint, array $transform): self
-    {
-        $this->transforms[$breakpoint] = $transform;
-        return $this;
-    }
-
-    /**
      * Set custom sizes
      */
     public function setSizes(array $sizes): self
@@ -163,14 +154,6 @@ class PictureOptions extends Model
     {
         $this->title = $title;
         return $this;
-    }
-
-    /**
-     * Set transform for specific breakpoint
-     */
-    public function transformFor(string $breakpoint, array $transform): self
-    {
-        return $this->setBreakpointTransform($breakpoint, $transform);
     }
 
     /**
