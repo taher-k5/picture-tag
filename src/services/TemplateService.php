@@ -109,7 +109,7 @@ class TemplateService extends Component
 	/**
 	 * Render SVG inline or as img
 	 */
-	public function renderSvg(Asset $asset, array $options = []): Markup
+	public function renderCraftSvg(Asset $asset, array $options = []): Markup
 	{
 		if (!$asset || $asset->kind !== Asset::KIND_IMAGE || $asset->getExtension() !== 'svg') {
 
@@ -120,9 +120,10 @@ class TemplateService extends Component
 		if (!$settings) {
 			return new Markup('', Craft::$app->charset);
 		}
+        $useInline = $options['inline'] ?? $settings->inlineSvg;
 		$options = $this->normalizeOptions($options);
 
-        return ($options['inline'] ?? $settings->inlineSvg)
+        return $useInline
             ? $this->renderInlineSvg($asset, $options)
             : $this->renderSvgAsImg($asset, $options);
 	}

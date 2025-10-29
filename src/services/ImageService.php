@@ -83,10 +83,31 @@ class ImageService extends Component
 	/**
 	 * Get SVG content
 	 */
-    public function getSvgContent(Asset $asset): string
+    public function getSvgContent(Asset $asset): ?string
     {
-        if (!$this->isSvg($asset)) return '';
-        $path = $asset->getPath();
-        return file_exists($path) ? $this->optimizeSvg(file_get_contents($path)) : '';
+        if ($asset->getExtension() !== 'svg') {
+            return null;
+        }
+
+        try {
+            // getCopyOfFile() forces a local copy for remote volumes
+            $path = $asset->getCopyOfFile();
+
+            if (!$path || !file_exists($path)) {
+                \Craft::warning('SVG file not found: ' . $asset->filename, __METHOD__);
+                return null;
+            }
+
+            $content = @file_get_contents($path);
+            if ($content === false || trim($content) === '') {
+                \Craft::warning('SVG file empty or unreadable: ' . $asset->filename, __METHOD__);
+                return null;
+            }
+
+            return $content;
+        } catch (\Throwable $e) {
+            \Craft::error('SVG read error: ' . $e->getMessage(), __METHOD__);
+            return null;
+        }
     }
 }
