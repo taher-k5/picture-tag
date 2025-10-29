@@ -14,17 +14,8 @@ use taherkathiriya\craftpicturetag\PictureTag;
  */
 class TemplateService extends Component
 {
-    private function getSettingsSafe()
-    {
-        $plugin = PictureTag::getInstance();
-        return $plugin ? $plugin->getSettings() : null;
-    }
-
-    private function getImageServiceSafe(): ?ImageService
-    {
-        $plugin = PictureTag::getInstance();
-        return $plugin ? $plugin->imageService : null;
-    }
+    private function getSettingsSafe() { return PictureTag::getInstance()?->getSettings(); }
+    private function getImageServiceSafe(): ?ImageService { return PictureTag::getInstance()?->imageService; }
 
     // DEFAULT TRANSFORM
     private function getDefaultTransform(): array
@@ -39,7 +30,7 @@ class TemplateService extends Component
 	/**
 	 * Render picture tag
 	 */
-	public function renderPicture(Asset $image, array $options = []): Markup
+    public function renderCraftPicture(Asset $image, array $options = []): Markup
 	{
 		if (!$image || $image->kind !== Asset::KIND_IMAGE) {
 			return new Markup('', Craft::$app->charset);
@@ -73,7 +64,7 @@ class TemplateService extends Component
 	/**
 	 * Render simple img tag with srcset
 	 */
-	public function renderImg(Asset $image, array $options = []): Markup
+    public function renderCraftImg(Asset $image, array $options = []): Markup
 	{
 		if (!$image || $image->kind !== Asset::KIND_IMAGE) {
             return new Markup('', Craft::$app->charset);
@@ -121,7 +112,7 @@ class TemplateService extends Component
 	public function renderSvg(Asset $asset, array $options = []): Markup
 	{
 		if (!$asset || $asset->kind !== Asset::KIND_IMAGE || $asset->getExtension() !== 'svg') {
-            Craft::warning('Invalid SVG asset in renderSvg', __METHOD__);
+
 			return new Markup('', Craft::$app->charset);
 		}
 
@@ -196,6 +187,7 @@ class TemplateService extends Component
 			'height' => null,
 			'fetchpriority' => null,
 			'inline' => false,
+            'attributes'   => [],
 		], $options);
 	}
 

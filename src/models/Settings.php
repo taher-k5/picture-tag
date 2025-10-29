@@ -63,8 +63,7 @@ class Settings extends Model
             [['enableWebP', 'enableAvif', 'enableSvgOptimization', 'inlineSvg', 'requireAltText', 'enableCache', 'enableDebug', 'showTransformInfo', 'enableDefaultTransforms', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles'], 'boolean', 'skipOnEmpty' => true],
             [['webpQuality', 'avifQuality', 'svgMaxSize', 'cacheDuration'], 'integer', 'min' => 0, 'skipOnEmpty' => true],
             [['defaultAltText', 'lazyLoadingClass', 'lazyPlaceholder', 'defaultPictureClass', 'defaultImageClass'], 'string', 'skipOnEmpty' => true],
-            [['defaultBreakpoints', 'defaultTransforms'], 'safe'],
-            [['defaultBreakpoints'], 'validateBreakpoints', 'skipOnEmpty' => true],
+            [['defaultTransforms'], 'safe'],
             [['defaultTransforms'], 'validateTransforms', 'skipOnEmpty' => true, 'when' => fn() => $this->enableDefaultTransforms],
         ];
     }

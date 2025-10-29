@@ -9,12 +9,7 @@ use taherkathiriya\craftpicturetag\PictureTag;
 
 class ImageService extends Component
 {
-    private function getSettingsSafe()
-    {
-        $plugin = PictureTag::getInstance();
-        return $plugin ? $plugin->getSettings() : null;
-    }
-
+    private function getSettingsSafe() { return PictureTag::getInstance()?->getSettings(); }
     // REMOVED: generateResponsiveSources() – no breakpoints
 
 	/**
