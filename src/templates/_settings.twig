@@ -160,18 +160,6 @@
                         rows: 4
                     }) }}
                     {{ forms.lightswitchField({
-                        label: 'Require Alt Text' | t('picture-tag'),
-                        name: 'settings[requireAltText]',
-                        on: settings.requireAltText ?? true
-                    }) }}
-                    {{ forms.textField({
-                        label: 'Default Alt Text' | t('picture-tag'),
-                        name: 'settings[defaultAltText]',
-                        placeholder: settings.PLACEHOLDER_DEFAULT_ALT_TEXT,
-                        value: settings.defaultAltText is not null ? settings.defaultAltText : '',
-                        errors: settings.getErrors('defaultAltText') ?? []
-                    }) }}
-                    {{ forms.lightswitchField({
                         label: 'Enable Cache' | t('picture-tag'),
                         name: 'settings[enableCache]',
                         on: settings.enableCache ?? true

@@ -265,11 +265,16 @@ class TemplateService extends Component
 
         if ($srcset) $attr['srcset'] = $srcset;
         if ($sizes) $attr['sizes'] = $sizes;
-		
-		// Alt text
-		$alt = $options['alt'] ?? $asset->alt ?? $asset->title ?? ($settings->defaultAltText ?? 'Image');
-        if ($settings->requireAltText && empty($alt)) $alt = $settings->defaultAltText;
-        $attr['alt'] = $alt;
+
+        // === AUTO ALT: user → title → unique fallback ===
+        if (!empty($options['alt'])) {
+            $attr['alt'] = $options['alt'];
+        } elseif (!empty($asset->title)) {
+            $attr['alt'] = $asset->title;
+        } else {
+            // Unique fallback per image (using asset ID)
+            $attr['alt'] = 'Image ' . $asset->id;
+        }
 
 		// Title
         if ($options['title'] ?? null) $attr['title'] = $options['title'];

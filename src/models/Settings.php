@@ -40,8 +40,6 @@ class Settings extends Model
     public bool $enableSizes = true;
     public bool $enableSrcset = true;
     public bool $enableFetchPriority = true;
-    public bool $requireAltText = true;
-    public ?string $defaultAltText = null;
     public bool $enableArtDirection = true;
     public bool $enableCropping = true;
     public bool $enableFocalPoint = true;
@@ -60,9 +58,9 @@ class Settings extends Model
     public function rules(): array
     {
         return [
-            [['enableWebP', 'enableAvif', 'enableSvgOptimization', 'inlineSvg', 'requireAltText', 'enableCache', 'enableDebug', 'showTransformInfo', 'enableDefaultTransforms', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles'], 'boolean', 'skipOnEmpty' => true],
+            [['enableWebP', 'enableAvif', 'enableSvgOptimization', 'inlineSvg', 'enableCache', 'enableDebug', 'showTransformInfo', 'enableDefaultTransforms', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles'], 'boolean', 'skipOnEmpty' => true],
             [['webpQuality', 'avifQuality', 'svgMaxSize', 'cacheDuration'], 'integer', 'min' => 0, 'skipOnEmpty' => true],
-            [['defaultAltText', 'lazyLoadingClass', 'lazyPlaceholder', 'defaultPictureClass', 'defaultImageClass'], 'string', 'skipOnEmpty' => true],
+            [['lazyLoadingClass', 'lazyPlaceholder', 'defaultPictureClass', 'defaultImageClass'], 'string', 'skipOnEmpty' => true],
             [['defaultTransforms'], 'safe'],
             [['defaultTransforms'], 'validateTransforms', 'skipOnEmpty' => true, 'when' => fn() => $this->enableDefaultTransforms],
         ];
@@ -172,8 +170,6 @@ class Settings extends Model
             'enableSizes' => $this->enableSizes,
             'enableSrcset' => $this->enableSrcset,
             'enableFetchPriority' => $this->enableFetchPriority,
-            'requireAltText' => $this->requireAltText,
-            'defaultAltText' => $this->defaultAltText,
             'enableArtDirection' => $this->enableArtDirection,
             'enableCropping' => $this->enableCropping,
             'enableFocalPoint' => $this->enableFocalPoint,
