@@ -59,16 +59,16 @@
                         errors: settings.getErrors('avifQuality') ?? [],
                         size: 5
                     }) }}
-                    <h2>{{ 'SVG Handling' | t('picture-tag') }}</h2>
-                    {{ forms.lightswitchField({
-                        label: 'Enable SVG Optimization' | t('picture-tag'),
-                        name: 'settings[enableSvgOptimization]',
-                        on: settings.enableSvgOptimization ?? false
-                    }) }}
                     {{ forms.lightswitchField({
                         label: 'Inline SVG' | t('picture-tag'),
                         name: 'settings[inlineSvg]',
                         on: settings.inlineSvg ?? false
+                    }) }}
+                    {{ forms.lightswitchField({
+                        label: 'Enable SVG Optimization' | t('picture-tag'),
+                        name: 'settings[enableSvgOptimization]',
+                        on: settings.enableSvgOptimization ?? false,
+                        instructions: 'can use inline svg we need Optimizes SVG files to reduce file size without quality loss.' | t('picture-tag')
                     }) }}
                     {{ forms.textField({
                         label: 'SVG Max Size (bytes)' | t('picture-tag'),

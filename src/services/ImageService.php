@@ -68,8 +68,45 @@ class ImageService extends Component
     public function optimizeSvg(string $content): string
     {
         $settings = $this->getSettingsSafe();
-        if (!$settings || !$settings->enableSvgOptimization) return $content;
-        return trim(preg_replace(['/<!--.*?-->/s', '/\s+/'], ['', ' '], $content));
+        if (!$settings || !$settings->enableSvgOptimization) {
+            return $content; // OFF → return original
+        }
+
+        // 1. Remove XML declaration & DOCTYPE
+        $content = preg_replace('/^<\?xml[^>]*\?>\s*/i', '', $content);
+        $content = preg_replace('/<!DOCTYPE[^>]*>\s*/i', '', $content);
+
+        // 2. Remove comments
+        $content = preg_replace('/<!--.*?-->/s', '', $content);
+
+        // 3. Remove metadata (Inkscape, Adobe, etc.)
+        $content = preg_replace('/<metadata[^>]*>.*?<\/metadata>/is', '', $content);
+        $content = preg_replace('/<sodipodi:namedview[^>]*>.*?<\/sodipodi:namedview>/is', '', $content);
+
+        // 4. Remove unnecessary attributes
+        $content = preg_replace('/\s+(id|class)="[^"]*"/i', '', $content);
+        $content = preg_replace('/\s+version="[^"]*"/i', '', $content);
+        $content = preg_replace('/\s+xmlns:xlink="[^"]*"/i', '', $content);
+        $content = preg_replace('/\s+enable-background="[^"]*"/i', '', $content);
+
+        // 5. Normalize whitespace
+        $content = preg_replace('/>\s+</', '><', $content);
+        $content = preg_replace('/\s+/', ' ', $content);
+        $content = preg_replace('/\s*([<>,\/])\s*/', '$1', $content);
+
+        // 6. Shorten common attributes (safe)
+        $content = str_replace(' fill="none"', ' fill="none"', $content); // keep
+        $content = preg_replace('/ stroke="none"/i', ' stroke="none"', $content);
+        $content = preg_replace('/ fill="#000000"/i', ' fill="#000"', $content);
+        $content = preg_replace('/ fill="#ffffff"/i', ' fill="#fff"', $content);
+        $content = preg_replace('/ stroke="#000000"/i', ' stroke="#000"', $content);
+
+        // 7. Remove empty <g> groups
+        $content = preg_replace('/<g>\s*<\/g>/', '', $content);
+        $content = preg_replace('/<g\s*\/>/', '', $content);
+
+        // 8. Trim final output
+        return trim($content);
     }
 
 	/**
@@ -90,23 +127,25 @@ class ImageService extends Component
         }
 
         try {
-            // getCopyOfFile() forces a local copy for remote volumes
+            // Force local copy for remote volumes (S3, etc.)
             $path = $asset->getCopyOfFile();
 
             if (!$path || !file_exists($path)) {
-                \Craft::warning('SVG file not found: ' . $asset->filename, __METHOD__);
+                Craft::warning('SVG file not found: ' . $asset->filename, __METHOD__);
                 return null;
             }
 
             $content = @file_get_contents($path);
             if ($content === false || trim($content) === '') {
-                \Craft::warning('SVG file empty or unreadable: ' . $asset->filename, __METHOD__);
+                Craft::warning('SVG file empty or unreadable: ' . $asset->filename, __METHOD__);
                 return null;
             }
 
-            return $content;
+            // Apply optimization if enabled
+            return $this->optimizeSvg($content);
+
         } catch (\Throwable $e) {
-            \Craft::error('SVG read error: ' . $e->getMessage(), __METHOD__);
+            Craft::error('SVG read error: ' . $e->getMessage(), __METHOD__);
             return null;
         }
     }
