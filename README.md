@@ -1,23 +1,22 @@
 # Picture Tag Plugin for Craft CMS
 
-A powerful and advanced Craft CMS plugin for handling responsive images with WebP and AVIF support, lazy loading, art direction, and much more.
+A powerful and advanced Craft CMS plugin for handling responsive images with WebP and AVIF support, lazy loading and much more.
 
 ## Features
 
 ### 🖼️ **Advanced Image Handling**
 - **WebP & AVIF Support**: Automatically generates modern image formats for better compression
-- **Responsive Images**: Full `srcset` and `sizes` attribute generation
-- **Art Direction**: Different crops for different screen sizes
-- **Lazy Loading**: Built-in lazy loading with intersection observer
-- **SVG Support**: Inline SVG rendering or as img tags with optimization
+- **Native Lazy Loading**: `loading="lazy"` + 1x1 SVG placeholder 
+- **SVG Inline Support**: provide 'inline:true' for all SVG in just one click
+- **SVG Optimization**: Remove unwanted strip comments, minify 
+- **Caching**: Full transform caching
 
 ### 🎨 **Flexible Template Functions**
-- `picture_tag()` - Full responsive picture element
-- `img_tag()` - Simple responsive img tag
-- `svg_tag()` - SVG handling with inline or img tag options
-- `picture_options()` - Fluent API for building options
-- `responsive_srcset()` - Generate srcset strings
-- `responsive_sizes()` - Generate sizes attributes
+- `craft_picture()` - Full responsive picture element
+- `craft_img()` - Simple responsive img tag
+- `craft_svg()` - SVG handling with inline or img tag options
+- `craft_srcset()` - Generate srcset strings
+
 
 ### ⚙️ **Comprehensive Configuration**
 - Customizable breakpoints and transforms
@@ -28,8 +27,6 @@ A powerful and advanced Craft CMS plugin for handling responsive images with Web
 
 ### 🚀 **Performance Features**
 - Image caching system
-- Preload hints for critical images
-- Fetch priority attributes
 - Optimized lazy loading
 - Reduced motion support
 
@@ -45,32 +42,39 @@ composer require taher-kathiriya/craft-picture-tag
 2. Place them in your `plugins/picture-tag/` directory
 3. Install via the Craft CMS control panel
 
+## How to Upgrade
+
+```bash
+composer require taherkathiriya/craft-picturetag:^1.0
+php craft plugin/install picture-tag
+```
+
+
 ## Quick Start
 
 ### Basic Usage
 
 ```twig
-{# Simple picture tag #}
-{{ picture_tag(image) }}
+{# Full responsive picture #}
+{{ craft_picture(image) }}
 
-{# Picture with custom options #}
-{{ picture_tag(image, {
-    class: 'hero-image',
-    loading: 'eager',
-    alt: 'Hero image description'
+{# With options #}
+{{ craft_picture(image, {
+    transform: { width: 1200, quality: 90 },
+    alt: 'My hero image'
 }) }}
 
-{# Simple image tag #}
-{{ img_tag(image, { width: 800, height: 600 }) }}
+{# Simple img #}
+{{ craft_img(image) }}
 
-{# SVG handling #}
-{{ svg_tag(svgAsset, { inline: true }) }}
+{# SVG inline #}
+{{ craft_svg(svgAsset, { inline: true }) }}
 ```
 
 ### Advanced Usage with Art Direction
 
-<!-- ```twig
-{{ picture_image, {
+```twig
+{{ craft_picture(image, {
     artDirection: {
         mobile: { width: 480, height: 320, mode: 'crop' },
         tablet: { width: 768, height: 400, mode: 'crop' },
@@ -81,36 +85,14 @@ composer require taher-kathiriya/craft-picture-tag
         '(min-width: 769px) 50vw'
     ]
 }) }}
-``` -->
+```
 
-### Using the Fluent API
-
-<!-- ```twig
-{% set options = picture_options()
-    .pictureClass('gallery-image')
-    .imageClass('gallery-img')
-    .lazy()
-    .quality(85)
-    .webp()
-    .avif()
-    .transformFor('mobile', { width: 320, height: 240 })
-    .transformFor('desktop', { width: 800, height: 600 })
-%}
-{{ picture(image, options.toArray()) }}
-``` -->
 
 ## Configuration
 
 ### Plugin Settings
 
 Access the plugin settings in the Craft CMS control panel under **Settings > Plugins > Picture Tag**.
-
-#### Breakpoints
-Configure responsive breakpoints:
-- Mobile: 480px
-- Tablet: 768px
-- Desktop: 1024px
-- Large: 1200px
 
 #### Image Formats
 - **WebP**: Enable/disable WebP generation
@@ -119,13 +101,10 @@ Configure responsive breakpoints:
 
 #### Performance
 - **Lazy Loading**: Enable/disable lazy loading
-- **Preload**: Add preload hints for critical images
 - **Cache**: Enable image transform caching
-- **Fetch Priority**: Add fetchpriority attributes
 
 #### Accessibility
-- **Alt Text**: Require alt text for all images
-- **Default Alt Text**: Fallback alt text
+- **Alt Text**: its by default whenuser not give alt then its use default alt
 
 ### Configuration File
 
@@ -135,126 +114,27 @@ Create a `config/picture-tag.php` file to override default settings:
 <?php
 return [
     'enableWebP' => true,
-    'enableAvif' => true,
-    'webpQuality' => 85,
-    'defaultBreakpoints' => [
-        'mobile' => 480,
-        'tablet' => 768,
-        'desktop' => 1024,
-        'large' => 1200,
-    ],
+    'enableAvif' => false,
+    'webpQuality' => 80,
+    'avifQuality' => 75,
+    'enableLazyLoading' => true,
+    'lazyPlaceholder' => 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB2aWV3Qm94PSIwIDAgMSAxIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNmNWY1ZjUiLz48L3N2Zz4=',
+    'enableSvgOptimization' => true,
+    'inlineSvg' => false,
+    'enableCache' => true,
+    'cacheDuration' => 86400,
+    'enableDebug' => false,
     // ... more settings
 ];
 ```
-
-## Template Functions
-
-### `picture(image, options)`
-
-Renders a complete `<picture>` element with responsive sources.
-
-**Parameters:**
-- `image` (Asset): The image asset
-- `options` (array): Configuration options
-
-**Options:**
-```twig
-{
-    class: 'picture-class',           // CSS class for picture element
-    imgClass: 'img-class',           // CSS class for img element
-    loading: 'lazy',                 // 'lazy' or 'eager'
-    alt: 'Alt text',                 // Override alt text
-    quality: 85,                     // Image quality (1-100)
-    enableWebP: true,                // Enable WebP generation
-    enableAvif: true,                // Enable AVIF generation
-    artDirection: {                  // Art direction for different breakpoints
-        mobile: { width: 480, height: 320 },
-        desktop: { width: 1024, height: 600 }
-    },
-    sizes: [                         // Custom sizes attribute
-        '(max-width: 768px) 100vw',
-        '50vw'
-    ],
-    breakpoints: {                   // Custom breakpoints
-        mobile: 480,
-        desktop: 1024
-    },
-    transforms: {                    // Custom transforms
-        mobile: { width: 480, quality: 80 },
-        desktop: { width: 1024, quality: 90 }
-    }
-}
-```
-
-### `img_tag(image, options)`
-
-Renders a simple responsive `<img>` tag.
-
-**Parameters:**
-- `image` (Asset): The image asset
-- `options` (array): Configuration options
-
-### `svg(asset, options)`
-
-Handles SVG assets with inline or image tag options.
-
-**Parameters:**
-- `asset` (Asset): The SVG asset
-- `options` (array): Configuration options
-
-**Options:**
-```twig
-{
-    inline: true,                    // Inline SVG content
-    class: 'svg-class',             // CSS class
-    width: 24,                      // Width
-    height: 24,                     // Height
-    role: 'img'                     // ARIA role
-}
-```
-
-### `picture_options()`
-
-Creates a fluent API for building picture options.
-
-**Methods:**
-```twig
-picture_options()
-    .pictureClass('hero-picture')   // Set picture class
-    .imageClass('hero-img')         // Set img class
-    .lazy()                         // Enable lazy loading
-    .eager()                        // Enable eager loading
-    .quality(90)                    // Set quality
-    .webp()                         // Enable WebP
-    .avif()                         // Enable AVIF
-    .alt('Alt text')                // Set alt text
-    .title('Title')                 // Set title
-    .dimensions(800, 600)           // Set width and height
-    .transformFor('mobile', { width: 480 })  // Set transform for breakpoint
-    .addSize('(max-width: 768px) 100vw')     // Add custom size
-    .setAttribute('data-id', '123') // Set custom attribute
-```
-
-### `responsive_srcset(image, transform)`
-
-Generates a responsive srcset string.
-
-### `responsive_sizes(customSizes)`
-
-Generates responsive sizes attribute.
-
-### `picture_debug(image, transform)`
-
-Returns debug information about image transforms (development only).
 
 ## Examples
 
 ### Hero Image
 ```twig
 <section class="hero">
-    {{ picture(entry.heroImage.one(), {
+    {{ craft_picture(entry.heroImage.one(), {
         class: 'hero-picture',
-        loading: 'eager',
         fetchpriority: 'high',
         artDirection: {
             mobile: { width: 480, height: 300, mode: 'crop' },
@@ -274,7 +154,7 @@ Returns debug information about image transforms (development only).
 <div class="gallery">
     {% for image in entry.galleryImages.all() %}
         <div class="gallery-item">
-            {{ picture(image, {
+            {{ craft_picture(image, {
                 class: 'gallery-picture',
                 loading: loop.first ? 'eager' : 'lazy',
                 fetchpriority: loop.first ? 'high' : 'low',
@@ -289,7 +169,7 @@ Returns debug information about image transforms (development only).
 ### Product Images
 ```twig
 <div class="product-image">
-    {{ picture(product.image.one(), {
+    {{ craft_picture(product.image.one(), {
         class: 'product-picture',
         loading: 'lazy',
         artDirection: {
@@ -306,69 +186,12 @@ Returns debug information about image transforms (development only).
 
 ### SVG Icons
 ```twig
-{# Inline SVG #}
-{{ svg(iconAsset, { inline: true, class: 'icon' }) }}
+{# Inline SVG | just inline true in settings #}
+{{ craft_svg(iconAsset, { class: 'icon' }) }} 
 
 {# SVG as img #}
-{{ svg(iconAsset, { width: 24, height: 24, alt: 'Icon' }) }}
+{{ craft_svg(iconAsset, { width: 24, height: 24, alt: 'Icon' }) }}
 ```
-
-## CSS Classes
-
-The plugin includes default CSS classes for styling:
-
-### Picture Element Classes
-- `.picture-responsive` - Base responsive picture class
-- `.picture-container` - Container with aspect ratio
-- `.picture-aspect-ratio` - Aspect ratio container
-
-### Image Classes
-- `.picture-img` - Base image class
-- `.lazy` - Lazy loading state
-- `.loaded` - Loaded state
-
-### Aspect Ratio Classes
-- `.picture-aspect-ratio--1-1` - 1:1 aspect ratio
-- `.picture-aspect-ratio--4-3` - 4:3 aspect ratio
-- `.picture-aspect-ratio--16-9` - 16:9 aspect ratio
-
-### Object Fit Classes
-- `.picture-fit-cover` - object-fit: cover
-- `.picture-fit-contain` - object-fit: contain
-- `.picture-fit-fill` - object-fit: fill
-
-## JavaScript Features
-
-### Lazy Loading
-The plugin includes JavaScript for advanced lazy loading:
-- Intersection Observer API
-- Fallback for older browsers
-- Smooth fade-in animations
-- Error handling
-
-### Gallery Support
-Built-in gallery functionality with lightbox:
-- Click to enlarge
-- Keyboard navigation
-- Touch/swipe support
-- Responsive design
-
-### Usage
-```javascript
-// Initialize PictureTag (automatic)
-// Or manually:
-const pictureTag = new PictureTag({
-    rootMargin: '50px 0px',
-    threshold: 0.01,
-    loadingClass: 'lazy',
-    loadedClass: 'loaded'
-});
-
-// Initialize gallery
-const gallery = new PictureGallery(document.querySelector('.gallery'));
-```
-
-## Performance Considerations
 
 ### Image Optimization
 - WebP and AVIF formats for modern browsers
@@ -382,12 +205,8 @@ const gallery = new PictureGallery(document.querySelector('.gallery'));
 - Automatic cache invalidation
 
 ### Loading Performance
-- Preload hints for critical images
-- Fetch priority attributes
 - Optimized lazy loading
 - Reduced motion support
-
-## Browser Support
 
 ### Modern Browsers
 - Full support for WebP and AVIF
@@ -398,8 +217,6 @@ const gallery = new PictureGallery(document.querySelector('.gallery'));
 - Graceful fallbacks
 - Traditional lazy loading
 - JPEG/PNG fallbacks
-
-## Accessibility
 
 ### Features
 - Required alt text enforcement
@@ -413,8 +230,6 @@ const gallery = new PictureGallery(document.querySelector('.gallery'));
 - Use appropriate loading priorities
 - Consider reduced motion preferences
 - Test with screen readers
-
-## Development
 
 ### Debug Mode
 Enable debug mode in plugin settings to see:
@@ -430,8 +245,6 @@ Enable debug mode in plugin settings to see:
     <pre>{{ dump(debugInfo) }}</pre>
 {% endif %}
 ```
-
-## Troubleshooting
 
 ### Common Issues
 
@@ -479,23 +292,51 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Changelog
 
 ### Version 1.0.0
-- Initial release
-- WebP and AVIF support
-- Responsive image generation
-- Lazy loading functionality
-- Art direction support
-- SVG handling
-- Comprehensive configuration options
-- JavaScript gallery features
-- Accessibility features
-- Performance optimizations
+- **Initial release** of the minimal, high-performance Picture Tag plugin
+- **WebP & AVIF support** with automatic `<source>` generation
+- **Responsive `srcset`** using density multipliers (1x, 1.5x, 2x, 3x)
+- **Native lazy loading** via `loading="lazy"` + customizable `data-placeholder`
+- **SVG optimization & inline rendering** with configurable toggle
+- **Caching layer** with `enableCache` and `cacheDuration` (in seconds)
+- **Debug mode** (`enableDebug`) for development inspection
+- **Twig functions**:
+  - `craft_picture()` – Full `<picture>` tag with WebP/AVIF with fallbacks
+  - `craft_img()` – Responsive `<img>` with `srcset`
+  - `craft_svg()` – Inline or `<img>` SVG rendering
+  - `craft_srcset()` – Generate `srcset` string manually
+- **Project config support** – All settings saved to `config/picture-tag.php`
+- **Craft CP Settings UI** – Clean, tabbed interface with validation
+- **No JavaScript or CSS bloat** – Zero frontend assets by default
+
+
+## [Unreleased] – Upcoming Features
+
+> These features are **planned** but **not included** in the current version.
+
+### Future Planned
+- [ ] **Default transform system** with `enableDefaultTransforms` and full control over width, height, quality
+- [ ] **Lightbox gallery** with swipe & keyboard support
+- [ ] **Art direction** with per-breakpoint crops
+- [ ] **Aspect ratio containers** (16:9, 1:1, etc.)
+- [ ] **CSS utility classes** (`picture-responsive`, `picture-fit-cover`, etc.)
+- [ ] **Shimmer placeholder animation**
+- [ ] **Error state UI** for failed images
+- [ ] **Preload & fetchpriority** controls
+- [ ] **Focal point cropping**
+- [ ] **Custom breakpoints & sizes**
+- [ ] **JavaScript lazy loader** (for legacy browsers)
+
+> These will be added in future **major versions** (e.g. `2.0.0`) as optional modules.
+
+---
+
 
 ## Credits
 
-- **Developer**: Taher Kathiriya
-- **Inspired by**: Picture Marion Newlevant plugin
+- **Inspired by**:  Marion Newlevant (Picture) and Club Studio (Inline Svg)
 - **Built for**: Craft CMS 5.0+
-
+- **Developer**: Taher Kathiriya
+- **Developer**: Taha Dudhiya
 ---
 
 For more information and updates, visit the [project repository](https://github.com/taher-k5/picture-tag).
