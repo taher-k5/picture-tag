@@ -70,6 +70,12 @@
                         on: settings.enableSvgOptimization ?? false,
                         instructions: 'can use inline svg we need Optimizes SVG files to reduce file size without quality loss.' | t('picture-tag')
                     }) }}
+                    {# {{ forms.lightswitchField({
+                        label: "Enable SVG Sanitization"|t('picture-tag'),
+                        name: 'settings[enableSvgSanitization]',
+                        on: settings.enableSvgSanitization ?? true,
+                        instructions: "When enabled, all SVGs will be sanitized to remove unsafe scripts, event handlers, and tags."|t('picture-tag')
+                    }) }} #}
                     {{ forms.textField({
                         label: 'SVG Max Size (bytes)' | t('picture-tag'),
                         name: 'settings[svgMaxSize]',

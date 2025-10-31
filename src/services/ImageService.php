@@ -117,12 +117,154 @@ class ImageService extends Component
         return $asset && $asset->getExtension() === 'svg';
     }
 
+    /**
+     * Sanitize SVG to remove unsafe tags and attributes
+     */
+    // public function sanitizeSvg(string $content): string
+    // {
+    //     $settings = $this->getSettingsSafe();
+    //      if (!$settings || !$settings->enableSvgSanitization) {
+    //         return $content;
+    //     }
+
+    //     // 1. Remove XML declaration (DOMDocument can't parse it)
+
+        
+    //     // Default whitelist of safe tags & attributes
+    //     $allowedTags = $settings->allowedSvgTags ?? [
+    //         'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon',
+    //         'text', 'tspan', 'defs', 'use', 'linearGradient', 'radialGradient', 'stop', 'clipPath',
+    //         'mask', 'pattern', 'symbol', 'title', 'desc', 'style'
+    //     ];
+
+    //     $allowedAttributes = [
+    //         'x', 'y', 'width', 'height', 'rx', 'ry', 'r', 'cx', 'cy', 'points',
+    //         'd', 'fill', 'stroke', 'stroke-width', 'transform', 'opacity',
+    //         'viewBox', 'xmlns', 'xmlns:xlink', 'preserveAspectRatio',
+    //         'id', 'class', 'style', 'xlink:href', 'clip-path', 'mask', 'gradientUnits'
+    //     ];
+
+    //     // Remove script, iframe, foreignObject, event handlers
+    //     $content = preg_replace('/<\s*(script|iframe|foreignObject)[^>]*>.*?<\s*\/\1\s*>/is', '', $content);
+    //     $content = preg_replace('/on[a-z]+\s*=\s*"[^"]*"/i', '', $content);
+    //     $content = preg_replace("/on[a-z]+\s*=\s*'[^']*'/i", '', $content);
+
+    //     // Load SVG safely with DOMDocument
+    //     libxml_use_internal_errors(true);
+    //     $dom = new \DOMDocument();
+    //     $dom->loadXML($content, LIBXML_NOENT | LIBXML_NONET | LIBXML_COMPACT);
+    //     $xpath = new \DOMXPath($dom);
+
+    //     // Remove disallowed tags
+    //     foreach ($xpath->query('//*') as $node) {
+    //         if (!in_array($node->nodeName, $allowedTags)) {
+    //             $node->parentNode->removeChild($node);
+    //             continue;
+    //         }
+
+    //         // Remove disallowed attributes
+    //         if ($node->hasAttributes()) {
+    //             foreach (iterator_to_array($node->attributes) as $attr) {
+    //                 if (!in_array($attr->name, $allowedAttributes)) {
+    //                     $node->removeAttribute($attr->name);
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     return $dom->saveXML($dom->documentElement);
+    // }
+
+    /**
+     * Sanitize SVG – works 100% with XML, CDATA, DOCTYPE
+     */
+    /**public function sanitizeSvg(string $content): string
+    {
+        $settings = $this->getSettingsSafe();
+        if (!$settings || !$settings->enableSvgSanitization) {
+            return $content; // OFF → return original
+        }
+
+        // 1. Remove XML declaration & DOCTYPE (DOMDocument can't parse)
+        $content = preg_replace('/^<\?xml[^>]?>\si', '', $content);
+        $content = preg_replace('/<!DOCTYPE[^>]*>\si', '', $content);
+
+        // 2. Fast regex: remove scripts, iframes, event handlers
+        $content = preg_replace('/<\s*(script|iframe|foreignObject)[^>]*>.*?<\s*\/\1\s*>/is', '', $content);
+        $content = preg_replace('/on[a-z]+\s*=\s*"[^"]*"/i', '', $content);
+        $content = preg_replace("/on[a-z]+\s*=\s*'[^']*'/i", '', $content);
+
+        // 3. Wrap in <root> + add xmlns to prevent parsing errors
+        $wrapped = '<root xmlns="http://www.w3.org/2000/svg">' . trim($content) . '</root>';
+
+        // 4. Use loadHTML to handle broken SVG gracefully
+        libxml_use_internal_errors(true);
+        $dom = new \DOMDocument();
+        $dom->loadHTML(
+            '<?xml encoding="utf-8" ?>' . $wrapped,
+            LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+        );
+
+        $xpath = new \DOMXPath($dom);
+
+        $allowedTags = [
+            'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon',
+            'text', 'tspan', 'defs', 'use', 'linearGradient', 'radialGradient', 'stop', 'clipPath',
+            'mask', 'pattern', 'symbol', 'title', 'desc', 'style'
+        ];
+
+        $allowedAttrs = [
+            'x', 'y', 'width', 'height', 'rx', 'ry', 'r', 'cx', 'cy', 'points',
+            'd', 'fill', 'stroke', 'stroke-width', 'transform', 'opacity',
+            'viewBox', 'xmlns', 'xmlns:xlink', 'preserveAspectRatio',
+            'id', 'class', 'style', 'xlink:href', 'clip-path', 'mask', 'gradientUnits'
+        ];
+
+        // Remove disallowed tags
+        foreach ($xpath->query('//*') as $node) {
+            $tag = strtolower($node->nodeName);
+            if (!in_array($tag, $allowedTags)) {
+                $node->parentNode->removeChild($node);
+                continue;
+            }
+
+            // Remove disallowed attributes
+            if ($node->hasAttributes()) {
+                foreach (iterator_to_array($node->attributes) as $attr) {
+                    if (!in_array($attr->name, $allowedAttrs)) {
+                        $node->removeAttribute($attr->name);
+                    }
+                }
+            }
+        }
+
+        // Extract <svg> from <root>
+        $svgNodes = $dom->getElementsByTagName('svg');
+        if ($svgNodes->length === 0) {
+            Craft::warning('No <svg> after sanitization', __METHOD__);
+            return $content;
+        }
+
+        $cleanSvg = $dom->saveHTML($svgNodes->item(0));
+
+        // Remove <svg> wrapper tags added by saveHTML
+        $cleanSvg = preg_replace('/^<svg[^>]*>/i', '<svg', $cleanSvg);
+        $cleanSvg = preg_replace('/<\/svg>$/i', '</svg>', $cleanSvg);
+
+        return $cleanSvg;
+    }*/
+
+
 	/**
 	 * Get SVG content
 	 */
-    public function getSvgContent(Asset $asset): ?string
+    public function getSvgContent(Asset $asset, ?bool $forceSanitize = null): ?string
     {
         if ($asset->getExtension() !== 'svg') {
+            return null;
+        }
+
+        $settings = $this->getSettingsSafe();
+        if (!$settings) {
             return null;
         }
 
@@ -141,8 +283,18 @@ class ImageService extends Component
                 return null;
             }
 
-            // Apply optimization if enabled
-            return $this->optimizeSvg($content);
+            // 1. Optimize
+            if ($settings->enableSvgOptimization) {
+                $content = $this->optimizeSvg($content);
+            }
+
+            // 2. Sanitize: use $forceSanitize if provided, else use setting
+            // $shouldSanitize = $forceSanitize ?? $settings->enableSvgSanitization;
+            // if ($shouldSanitize) {
+            //     $content = $this->sanitizeSvg($content);
+            // }
+
+            return $content;
 
         } catch (\Throwable $e) {
             Craft::error('SVG read error: ' . $e->getMessage(), __METHOD__);

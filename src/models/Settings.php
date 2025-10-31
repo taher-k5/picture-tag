@@ -54,11 +54,12 @@ class Settings extends Model
     public ?int $cacheDuration = null;
     public bool $enableDebug = false;
     public bool $showTransformInfo = false;
+    // public bool $enableSvgSanitization = true;
 
     public function rules(): array
     {
         return [
-            [['enableWebP', 'enableAvif', 'enableSvgOptimization', 'inlineSvg', 'enableCache', 'enableDebug', 'showTransformInfo', 'enableDefaultTransforms', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles'], 'boolean', 'skipOnEmpty' => true],
+            [['enableWebP', 'enableAvif', 'enableSvgOptimization', 'inlineSvg', 'enableCache', 'enableDebug', 'showTransformInfo', 'enableDefaultTransforms', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles'], 'boolean', 'skipOnEmpty' => true],//'enableSvgSanitization' add here
             [['webpQuality', 'avifQuality', 'svgMaxSize', 'cacheDuration'], 'integer', 'min' => 0, 'skipOnEmpty' => true],
             [['lazyLoadingClass', 'lazyPlaceholder', 'defaultPictureClass', 'defaultImageClass'], 'string', 'skipOnEmpty' => true],
             [['defaultTransforms'], 'safe'],
@@ -184,6 +185,7 @@ class Settings extends Model
             'cacheDuration' => $this->cacheDuration,
             'enableDebug' => $this->enableDebug,
             'showTransformInfo' => $this->showTransformInfo,
+            // 'enableSvgSanitization' => $this->enableSvgSanitization,
         ];
 
         Craft::info('Saving picture-tag settings: ' . print_r($configData, true), __METHOD__);
