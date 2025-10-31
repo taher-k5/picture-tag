@@ -27,7 +27,6 @@ class SettingsController extends Controller
     public function actionEdit(): ?Response
     {
         $settings = PictureTag::$plugin->getSettings();
-        Craft::info('Loaded settings: ' . print_r($settings->toArray(), true), __METHOD__);
 
         return $this->renderTemplate('picture-tag/_settings', [
             'settings' => $settings,
@@ -45,7 +44,6 @@ class SettingsController extends Controller
 
         $settings = new Settings();
         $formData = Craft::$app->getRequest()->getBodyParam('settings', []);
-        Craft::info('Form data submitted: ' . print_r($formData, true), __METHOD__);
 
         if (!is_array($formData)) {
             Craft::$app->getSession()->setError(Craft::t('picture-tag', 'Invalid settings data.'));
@@ -62,10 +60,7 @@ class SettingsController extends Controller
             return $this->redirectToPostedUrl();
         }
 
-        Craft::info('Validation errors: ' . print_r($settings->getErrors(), true), __METHOD__);
-        Craft::$app->getSession()->setError(Craft::t('picture-tag', 'Couldn’t save settings due to validation errors: {errors}', [
-            'errors' => implode(', ', array_merge(...array_values($settings->getErrors())))
-        ]));
+        Craft::$app->getSession()->setError(Craft::t('picture-tag', 'Couldn’t save settings.'));
         return $this->renderTemplate('picture-tag/_settings', [
             'settings' => $settings,
             'readOnly' => !Craft::$app->getConfig()->getGeneral()->allowAdminChanges,

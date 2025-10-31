@@ -39,14 +39,6 @@ class ImageService extends Component
     }
 
 	/**
-	 * Generate sizes attribute
-	 */
-    public function generateSizes(array $customSizes = []): string
-    {
-        return !empty($customSizes) ? implode(', ', $customSizes) : '100vw';
-    }
-
-	/**
 	 * Check if image supports WebP
 	 */
     public function supportsWebP(Asset $image): bool
@@ -273,13 +265,11 @@ class ImageService extends Component
             $path = $asset->getCopyOfFile();
 
             if (!$path || !file_exists($path)) {
-                Craft::warning('SVG file not found: ' . $asset->filename, __METHOD__);
                 return null;
             }
 
             $content = @file_get_contents($path);
             if ($content === false || trim($content) === '') {
-                Craft::warning('SVG file empty or unreadable: ' . $asset->filename, __METHOD__);
                 return null;
             }
 

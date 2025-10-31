@@ -18,12 +18,7 @@ class Settings extends Model
     ];
     public const PLACEHOLDER_WEBP_QUALITY = 80;
     public const PLACEHOLDER_AVIF_QUALITY = 75;
-    public const PLACEHOLDER_LAZY_LOADING_CLASS = 'lazy';
     public const PLACEHOLDER_LAZY_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB2aWV3Qm94PSIwIDAgMSAxIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNmNWY1ZjUiLz48L3N2Zz4=';
-    public const PLACEHOLDER_DEFAULT_ALT_TEXT = 'Image';
-    public const PLACEHOLDER_DEFAULT_PICTURE_CLASS = 'picture-responsive';
-    public const PLACEHOLDER_DEFAULT_IMAGE_CLASS = 'picture-img';
-    public const PLACEHOLDER_SVG_MAX_SIZE = 1024;
     public const PLACEHOLDER_CACHE_DURATION = 86400;
 
     // Main value properties (saved to project.yaml)
@@ -34,36 +29,31 @@ class Settings extends Model
     public ?int $webpQuality = null;
     public ?int $avifQuality = null;
     public bool $enableLazyLoading = true;
-    public ?string $lazyLoadingClass = null;
     public ?string $lazyPlaceholder = null;
-    public bool $enablePreload = false;
-    public bool $enableSizes = true;
-    public bool $enableSrcset = true;
-    public bool $enableFetchPriority = true;
-    public bool $enableArtDirection = true;
-    public bool $enableCropping = true;
-    public bool $enableFocalPoint = true;
-    public bool $enableAspectRatio = true;
-    public bool $includeDefaultStyles = true;
-    public ?string $defaultPictureClass = null;
-    public ?string $defaultImageClass = null;
     public bool $enableSvgOptimization = true;
     public bool $inlineSvg = false;
-    public ?int $svgMaxSize = null;
     public bool $enableCache = true;
     public ?int $cacheDuration = null;
     public bool $enableDebug = false;
-    public bool $showTransformInfo = false;
     // public bool $enableSvgSanitization = true;
 
     public function rules(): array
     {
         return [
-            [['enableWebP', 'enableAvif', 'enableSvgOptimization', 'inlineSvg', 'enableCache', 'enableDebug', 'showTransformInfo', 'enableDefaultTransforms', 'enableLazyLoading', 'enablePreload', 'enableSizes', 'enableSrcset', 'enableFetchPriority', 'enableArtDirection', 'enableCropping', 'enableFocalPoint', 'enableAspectRatio', 'includeDefaultStyles'], 'boolean', 'skipOnEmpty' => true],//'enableSvgSanitization' add here
-            [['webpQuality', 'avifQuality', 'svgMaxSize', 'cacheDuration'], 'integer', 'min' => 0, 'skipOnEmpty' => true],
-            [['lazyLoadingClass', 'lazyPlaceholder', 'defaultPictureClass', 'defaultImageClass'], 'string', 'skipOnEmpty' => true],
+            // Booleans
+            [['enableDefaultTransforms','enableWebP','enableAvif','enableLazyLoading',
+              'enableSvgOptimization','inlineSvg','enableCache','enableDebug'], 'boolean'],
+
+            // Integers (0-100 for quality, any positive for cache)
+            [['webpQuality','avifQuality'], 'integer', 'min' => 0, 'max' => 100, 'skipOnEmpty' => true],
+            [['cacheDuration'], 'integer', 'min' => 0, 'skipOnEmpty' => true],
+
+            // Strings
+            [['lazyPlaceholder'], 'string', 'skipOnEmpty' => true],
+
+            // Transforms
             [['defaultTransforms'], 'safe'],
-            [['defaultTransforms'], 'validateTransforms', 'skipOnEmpty' => true, 'when' => fn() => $this->enableDefaultTransforms],
+            [['defaultTransforms'], 'validateTransforms', 'when' => fn() => $this->enableDefaultTransforms],
         ];
     }
 
@@ -71,7 +61,6 @@ class Settings extends Model
     {
         if (!$this->enableDefaultTransforms) {
             $this->$attribute = [];
-            Craft::info('Default transforms cleared due to enableDefaultTransforms being false', __METHOD__);
             return;
         }
 
@@ -86,39 +75,26 @@ class Settings extends Model
                 continue;
             }
 
-            if (isset($transform['width']) && !empty($transform['width']) && (!is_numeric($transform['width']) || $transform['width'] <= 0)) {
-                $this->addError($attribute, "Transform '{$name}' width must be a positive number.");
-            }
-
-            if (isset($transform['height']) && !empty($transform['height']) && (!is_numeric($transform['height']) || $transform['height'] <= 0)) {
-                $this->addError($attribute, "Transform '{$name}' height must be a positive number.");
-            }
-
-            if (isset($transform['quality']) && !empty($transform['quality']) && (!is_numeric($transform['quality']) || $transform['quality'] < 1 || $transform['quality'] > 100)) {
-                $this->addError($attribute, "Transform '{$name}' quality must be between 1 and 100.");
-            }
-
-            // Cast values to integers
-            if (isset($transform['width'])) {
-                $this->$attribute[$name]['width'] = (int)$transform['width'];
-            }
-            if (isset($transform['height'])) {
-                $this->$attribute[$name]['height'] = (int)$transform['height'];
+            foreach (['width','height','quality'] as $key) {
+                if (isset($transform[$key]) && (!is_numeric($transform[$key]) || $transform[$key] <= 0)) {
+                    $this->addError($attribute, "Transform '{$name}' {$key} must be a positive number.");
+                }
+                if (isset($transform[$key])) {
+                    $this->$attribute[$name][$key] = (int)$transform[$key];
+                }
             }
             if (isset($transform['quality'])) {
-                $this->$attribute[$name]['quality'] = (int)$transform['quality'];
+                $this->$attribute[$name]['quality'] = min(100, max(1, (int)$transform['quality']));
             }
         }
     }
 
     public function ensureArray(mixed $value, array $fallback): array
     {
-        if (is_array($value) && !empty($value)) {
-            return $value;
-        }
+        if (is_array($value) && $value !== []) return $value;
         if (is_string($value)) {
             $decoded = json_decode($value, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && !empty($decoded)) {
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && $decoded !== []) {
                 return $decoded;
             }
         }
@@ -131,15 +107,9 @@ class Settings extends Model
             return [];
         }
         $transforms = $this->ensureArray($this->defaultTransforms, self::PLACEHOLDER_DEFAULT_TRANSFORMS);
-        foreach ($transforms as $name => $transform) {
-            if (isset($transform['width'])) {
-                $transforms[$name]['width'] = (int)$transform['width'];
-            }
-            if (isset($transform['height'])) {
-                $transforms[$name]['height'] = (int)$transform['height'];
-            }
-            if (isset($transform['quality'])) {
-                $transforms[$name]['quality'] = (int)$transform['quality'];
+        foreach ($transforms as $name => $t) {
+            foreach (['width','height','quality'] as $k) {
+                if (isset($t[$k])) $transforms[$name][$k] = (int)$t[$k];
             }
         }
         return $transforms;
@@ -157,7 +127,7 @@ class Settings extends Model
 
         $projectConfig = Craft::$app->getProjectConfig();
         $pluginHandle = 'picture-tag';
-        $configData = [
+        $data = [
             'defaultTransforms' => $this->enableDefaultTransforms ? $this->defaultTransforms : [],
             'enableDefaultTransforms' => $this->enableDefaultTransforms,
             'enableWebP' => $this->enableWebP,
@@ -165,31 +135,16 @@ class Settings extends Model
             'webpQuality' => $this->webpQuality,
             'avifQuality' => $this->avifQuality,
             'enableLazyLoading' => $this->enableLazyLoading,
-            'lazyLoadingClass' => $this->lazyLoadingClass,
             'lazyPlaceholder' => $this->lazyPlaceholder,
-            'enablePreload' => $this->enablePreload,
-            'enableSizes' => $this->enableSizes,
-            'enableSrcset' => $this->enableSrcset,
-            'enableFetchPriority' => $this->enableFetchPriority,
-            'enableArtDirection' => $this->enableArtDirection,
-            'enableCropping' => $this->enableCropping,
-            'enableFocalPoint' => $this->enableFocalPoint,
-            'enableAspectRatio' => $this->enableAspectRatio,
-            'includeDefaultStyles' => $this->includeDefaultStyles,
-            'defaultPictureClass' => $this->defaultPictureClass,
-            'defaultImageClass' => $this->defaultImageClass,
             'enableSvgOptimization' => $this->enableSvgOptimization,
             'inlineSvg' => $this->inlineSvg,
-            'svgMaxSize' => $this->svgMaxSize,
             'enableCache' => $this->enableCache,
             'cacheDuration' => $this->cacheDuration,
             'enableDebug' => $this->enableDebug,
-            'showTransformInfo' => $this->showTransformInfo,
             // 'enableSvgSanitization' => $this->enableSvgSanitization,
         ];
 
-        Craft::info('Saving picture-tag settings: ' . print_r($configData, true), __METHOD__);
-        $projectConfig->set("plugins.{$pluginHandle}.settings", $configData);
+        $projectConfig->set("plugins.{$pluginHandle}.settings", $data);
         return true;
     }
 }

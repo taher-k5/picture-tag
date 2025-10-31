@@ -17,6 +17,11 @@ class TemplateService extends Component
     private function getSettingsSafe() { return PictureTag::getInstance()?->getSettings(); }
     private function getImageServiceSafe(): ?ImageService { return PictureTag::getInstance()?->imageService; }
 
+    private function getCharset(): string
+    {
+        return Craft::$app->getView()->getTwig()->getCharset();
+    }
+
     // DEFAULT TRANSFORM
     private function getDefaultTransform(): array
     {
@@ -32,33 +37,24 @@ class TemplateService extends Component
 	 */
     public function renderCraftPicture(Asset $image, array $options = []): Markup
 	{
-		if (!$image || $image->kind !== Asset::KIND_IMAGE) {
-			return new Markup('', Craft::$app->charset);
-		}
+        if (!$image || $image->kind !== Asset::KIND_IMAGE) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
 
         $settings = $this->getSettingsSafe();
         $imageService = $this->getImageServiceSafe();
-        if (!$settings || !$imageService) {
-            return new Markup('', Craft::$app->charset);
-        }
+        if (!$settings || !$imageService) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
 
         $options = $this->normalizeOptions($options);
         $transform = $options['transform'] ?? $this->getDefaultTransform();
 
-        $pictureAttr = $this->buildPictureAttributes($options);
         $sourceTags = $this->buildRasterSourceTags($image, $transform, $options);
-        $sizes = $imageService->generateSizes($options['sizes'] ?? []);
-
         $fallbackSrc = $image->getUrl($transform, true) ?: $image->getUrl();
-        $imgAttr = $this->buildImgAttributes($image, $options, '', $sizes);
+        $imgAttr = $this->buildImgAttributes($image, $options, '', '');
         $imgAttr['src'] = $this->normalizeUrl($fallbackSrc);
 
-        $html = '<picture' . Html::renderTagAttributes($pictureAttr) . '>'
-              . $sourceTags
-              . '<img' . Html::renderTagAttributes($imgAttr) . '>'
-              . '</picture>';
+        $html = '<picture>' . $sourceTags .
+                '<img' . Html::renderTagAttributes($imgAttr) . '></picture>';
 
-        return new Markup($html, Craft::$app->charset);
+        return new Markup($html, Craft::$app->getView()->getTwig()->getCharset());
     }
 
 	/**
@@ -66,15 +62,11 @@ class TemplateService extends Component
 	 */
     public function renderCraftImg(Asset $image, array $options = []): Markup
 	{
-		if (!$image || $image->kind !== Asset::KIND_IMAGE) {
-            return new Markup('', Craft::$app->charset);
-        }
+        if (!$image || $image->kind !== Asset::KIND_IMAGE) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
 
         $settings = $this->getSettingsSafe();
         $imageService = $this->getImageServiceSafe();
-        if (!$settings || !$imageService) {
-			return new Markup('', Craft::$app->charset);
-		}
+        if (!$settings || !$imageService) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
 
 		$options = $this->normalizeOptions($options);
         $transform = $options['transform'] ?? $this->getDefaultTransform();
@@ -96,14 +88,12 @@ class TemplateService extends Component
 
         // 3. Original
         $srcset[] = $imageService->generateSrcSet($image, $transform, $maxWidth);
-
         $fullSrcset = implode(', ', array_filter($srcset));
-        $sizes = $imageService->generateSizes($options['sizes'] ?? []);
 
-        $imgAttr = $this->buildImgAttributes($image, $options, $fullSrcset, $sizes);
+        $imgAttr = $this->buildImgAttributes($image, $options, $fullSrcset, '');
         $imgAttr['src'] = $this->normalizeUrl($image->getUrl($transform, true) ?: $image->getUrl());
 
-        return new Markup('<img' . Html::renderTagAttributes($imgAttr) . '>', Craft::$app->charset);
+        return new Markup('<img' . Html::renderTagAttributes($imgAttr) . '>', Craft::$app->getView()->getTwig()->getCharset());
     }
 
 	/**
@@ -113,12 +103,12 @@ class TemplateService extends Component
 	{
 		if (!$asset || $asset->kind !== Asset::KIND_IMAGE || $asset->getExtension() !== 'svg') {
 
-			return new Markup('', Craft::$app->charset);
+			return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
 		}
 
 		$settings = $this->getSettingsSafe();
 		if (!$settings) {
-			return new Markup('', Craft::$app->charset);
+			return new Markup('', Craft::$app->getView()->getTwig()->getCharset());;
 		}
         $useInline = $options['inline'] ?? $settings->inlineSvg;
 		$options = $this->normalizeOptions($options);
@@ -131,113 +121,77 @@ class TemplateService extends Component
 	/**
 	 * Render inline SVG
 	 */
-	public function renderInlineSvg(Asset $asset, array $options = []): Markup
-	{
-		$imageService = $this->getImageServiceSafe();
-		if (!$imageService) {
-			return new Markup('', Craft::$app->charset);
-		}
-		$svgContent = $imageService->getSvgContent($asset);
-		
-		if (!$svgContent) {
-			return new Markup('', Craft::$app->charset);
-		}
+    private function renderInlineSvg(Asset $asset, array $options): Markup
+    {
+        $imageService = $this->getImageServiceSafe();
+        $content = $imageService?->getSvgContent($asset);
+        if (!$content) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
 
         $svgAttr = $this->buildSvgAttributes($options);
         if ($svgAttr) {
-            $svgContent = preg_replace(
+            $content = preg_replace(
                 '/<svg([^>]*)>/',
                 '<svg$1' . Html::renderTagAttributes($svgAttr) . '>',
-                $svgContent,
+                $content,
                 1
             );
         }
-
-		return new Markup($svgContent, Craft::$app->charset);
-	}
+        return new Markup($content, Craft::$app->getView()->getTwig()->getCharset());
+    }
 
 	/**
 	 * Render SVG as img tag
 	 */
-	public function renderSvgAsImg(Asset $asset, array $options = []): Markup
-	{
-		$options = $this->normalizeOptions($options);
+    private function renderSvgAsImg(Asset $asset, array $options): Markup
+    {
+        $options = $this->normalizeOptions($options);
         $imgAttr = $this->buildImgAttributes($asset, $options);
-        return new Markup('<img' . Html::renderTagAttributes($imgAttr) . '>', Craft::$app->charset);
+        return new Markup('<img' . Html::renderTagAttributes($imgAttr) . '>', Craft::$app->getView()->getTwig()->getCharset());
     }
 
 	/**
 	 * Normalize options array
 	 */
-	protected function normalizeOptions(array $options): array
-	{
+    protected function normalizeOptions(array $options): array
+    {
         $settings = $this->getSettingsSafe() ?? new \taherkathiriya\craftpicturetag\models\Settings();
-		
-		return array_merge([
-			'class' => $settings->defaultPictureClass,
-			'imgClass' => $settings->defaultImageClass,
-			'loading' => $settings->enableLazyLoading ? 'lazy' : 'eager',
-			'enableWebP' => $settings->enableWebP,
-			'enableAvif' => $settings->enableAvif,
-			'quality' => $settings->webpQuality,
-			'sizes' => [],
-			'transform' => [],
-			'alt' => null,
-			'title' => null,
-			'width' => null,
-			'height' => null,
-			'fetchpriority' => null,
-			'inline' => false,
+
+        return array_merge([
+            'enableWebP' => $settings->enableWebP,
+            'enableAvif' => $settings->enableAvif,
+            'loading'    => $settings->enableLazyLoading ? 'lazy' : 'eager',
+            'transform'  => [],
             'attributes'   => [],
 		], $options);
-	}
-
-	/**
-	 * Build picture element attributes
-	 */
-	protected function buildPictureAttributes(array $options): array
-	{
-        $attr = [];
-        if ($options['class'] ?? null) $attr['class'] = $options['class'];
-        if ($options['id'] ?? null) $attr['id'] = $options['id'];
-        return array_merge($attr, $options['attributes'] ?? []);
     }
 
 	/**
 	 * Build source tags
 	 */
-	protected function buildRasterSourceTags(Asset $image, array $transform, array $options): string
+    private function buildRasterSourceTags(Asset $image, array $transform, array $options): string
     {
         $imageService = $this->getImageServiceSafe();
         if (!$imageService) return '';
 
-		$html = '';
+        $html = '';
         $maxWidth = $transform['width'] ?? 1440;
-        $sizes = $imageService->generateSizes($options['sizes'] ?? []);
-
         // AVIF
         if ($options['enableAvif'] && $imageService->supportsAvif($image)) {
             $avif = array_merge($transform, ['format' => 'avif']);
             $srcset = $imageService->generateSrcSet($image, $avif, $maxWidth);
-            $html .= '<source type="image/avif" srcset="' . $srcset . '"';
-            if ($sizes) $html .= ' sizes="' . $sizes . '"';
-            $html .= '>';
+            $html .= '<source type="image/avif" srcset="' . $srcset . '">';
         }
 
         // WebP
         if ($options['enableWebP'] && $imageService->supportsWebP($image)) {
             $webp = array_merge($transform, ['format' => 'webp']);
             $srcset = $imageService->generateSrcSet($image, $webp, $maxWidth);
-            $html .= '<source type="image/webp" srcset="' . $srcset . '"';
-            if ($sizes) $html .= ' sizes="' . $sizes . '"';
-            $html .= '>';
+            $html .= '<source type="image/webp" srcset="' . $srcset . '">';
         }
 
         // Original
         $srcset = $imageService->generateSrcSet($image, $transform, $maxWidth);
-        $html .= '<source srcset="' . $srcset . '"';
-        if ($sizes) $html .= ' sizes="' . $sizes . '"';
-        $html .= '>';
+        $html .= '<source srcset="' . $srcset . '">';
 
 		return $html;
 	}
@@ -267,37 +221,14 @@ class TemplateService extends Component
         if ($sizes) $attr['sizes'] = $sizes;
 
         // === AUTO ALT: user → title → unique fallback ===
-        if (!empty($options['alt'])) {
-            $attr['alt'] = $options['alt'];
-        } elseif (!empty($asset->title)) {
-            $attr['alt'] = $asset->title;
-        } else {
-            // Unique fallback per image (using asset ID)
-            $attr['alt'] = 'Image ' . $asset->id;
-        }
-
-		// Title
-        if ($options['title'] ?? null) $attr['title'] = $options['title'];
-
-		// Class
-		if ($options['imgClass'] ?? null) $attr['class'] = $options['imgClass'];
-
-		// Dimensions
-		if ($options['width'] ?? null) $attr['width'] = $options['width'];
-        if ($options['height'] ?? null) $attr['height'] = $options['height'];
+        $attr['alt'] = $options['alt'] ?? $asset->title ?? 'Image ' . $asset->id;
 
 		// Loading
 		if ($options['loading'] ?? null) $attr['loading'] = $options['loading'];
 
-        // Fetch priority
-		if ($settings->enableFetchPriority) {
-            $attr['fetchpriority'] = $options['fetchpriority'] ?? ($options['loading'] === 'eager' ? 'high' : 'low');
-        }
-
-		// Lazy loading: keep real src; add placeholder hint and class
-        if ($options['loading'] === 'lazy' && $settings->enableLazyLoading && $settings->lazyPlaceholder) {
+        // lazy placeholder (only when lazy is on)
+        if (($options['loading'] ?? '') === 'lazy' && $settings->enableLazyLoading && $settings->lazyPlaceholder) {
             $attr['data-placeholder'] = $settings->lazyPlaceholder;
-            $attr['class'] = trim(($attr['class'] ?? '') . ' ' . $settings->lazyLoadingClass);
         }
 
 		// Add any custom attributes
@@ -308,8 +239,7 @@ class TemplateService extends Component
 	 */
     protected function buildSvgAttributes(array $options): array
     {
-        $attr = [];
-
+        $attr = $options['attributes'] ?? [];
 		// Class
         if ($options['class'] ?? null) $attr['class'] = $options['class'];
 
@@ -319,8 +249,6 @@ class TemplateService extends Component
 
 		// Role for accessibility
         $attr['role'] = $options['role'] ?? 'img';
-		
-		// Add any custom attributes
-        return array_merge($attr, $options['attributes'] ?? []);
+        return $attr;
     }
 }

@@ -34,10 +34,7 @@ class PictureTagTwigExtension extends AbstractExtension
             new TwigFunction('craft_picture', [$this, 'craftPicture'], ['is_safe' => ['html']]),
             new TwigFunction('craft_img', [$this, 'craftImg'], ['is_safe' => ['html']]),
             new TwigFunction('craft_svg', [$this, 'craftSvg'], ['is_safe' => ['html']]),
-            // picture_options removed
             new TwigFunction('craft_srcset', [$this, 'craftSrcset']),
-            new TwigFunction('craft_sizes', [$this, 'craftSizes']),
-            new TwigFunction('craft_picture_debug', [$this, 'pictureDebug']),
 		];
 	}
 
@@ -54,10 +51,7 @@ class PictureTagTwigExtension extends AbstractExtension
 
 		// Array of assets
         if (is_array($image)) { $first = reset($image); return $first instanceof Asset ? $first : null; }
-
-		// Numeric ID
-        if (is_numeric($image)) { $a = Craft::$app->elements->getElementById((int)$image, Asset::class); return $a instanceof Asset ? $a : null; }
-
+        if (is_numeric($image)) return Craft::$app->elements->getElementById((int)$image, Asset::class);
 		return null;
 	}
 
@@ -67,8 +61,8 @@ class PictureTagTwigExtension extends AbstractExtension
     public function craftPicture($image, array $options = []): Markup
 	{
 		$image = $this->normalizeAsset($image);
-        if (!$image) return new Markup('', Craft::$app->charset);
-        return $this->getTemplateService()?->renderCraftPicture($image, $options) ?? new Markup('', Craft::$app->charset);
+        if (!$image) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
+        return $this->getTemplateService()?->renderCraftPicture($image, $options) ?? new Markup('', Craft::$app->getView()->getTwig()->getCharset());
     }
 
     
@@ -78,8 +72,8 @@ class PictureTagTwigExtension extends AbstractExtension
     public function craftImg($image, array $options = []): Markup
 	{
 		$image = $this->normalizeAsset($image);
-        if (!$image) return new Markup('', Craft::$app->charset);
-        return $this->getTemplateService()?->renderCraftImg($image, $options) ?? new Markup('', Craft::$app->charset);
+        if (!$image) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
+        return $this->getTemplateService()?->renderCraftImg($image, $options) ?? new Markup('', Craft::$app->getView()->getTwig()->getCharset());
     }
 
 	/**
@@ -88,8 +82,8 @@ class PictureTagTwigExtension extends AbstractExtension
     public function craftSvg($image, array $options = []): Markup
 	{
 		$image = $this->normalizeAsset($image);
-        if (!$image) return new Markup('', Craft::$app->charset);
-        return $this->getTemplateService()?->renderCraftSvg($image, $options) ?? new Markup('', Craft::$app->charset);
+        if (!$image) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
+        return $this->getTemplateService()?->renderCraftSvg($image, $options) ?? new Markup('', Craft::$app->getView()->getTwig()->getCharset());
 	}
 
 	/**
@@ -99,25 +93,7 @@ class PictureTagTwigExtension extends AbstractExtension
 	{
 		$image = $this->normalizeAsset($image);
         if (!$image) return '';
-        return $this->getImageService()?->generateSrcSet($image, $transform, $transform['width'] ?? 800) ?? '';
-    }
-
-	/**
-	 * Generate responsive sizes
-	 */
-    public function craftSizes(array $customSizes = []): string
-    {
-        return $this->getImageService()?->generateSizes($customSizes) ?? '';
-    }
-    
-	/**
-	 * Debug picture information
-	 */
-    public function craftPictureDebug($image, array $transform = []): array
-    {
-        $image = $this->normalizeAsset($image);
-        if (!$image) return [];
-        // Optional: add debug method to ImageService if needed
-        return [];
+        $max = $transform['width'] ?? 800;
+        return $this->getImageService()?->generateSrcSet($image, $transform, $max) ?? '';
     }
 }
