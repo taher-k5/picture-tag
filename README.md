@@ -12,10 +12,10 @@ A powerful and advanced Craft CMS plugin for handling responsive images with Web
 - **Caching**: Full transform caching
 
 ### 🎨 **Flexible Template Functions**
-- `craft_picture()` - Full responsive picture element
-- `craft_img()` - Simple responsive img tag
-- `craft_svg()` - SVG handling with inline or img tag options
-- `craft_srcset()` - Generate srcset strings
+- `sfs_picture()` - Full responsive picture element
+- `sfs_img()` - Simple responsive img tag
+- `sfs_svg()` - SVG handling with inline or img tag options
+- `sfs_srcset()` - Generate srcset strings
 
 
 ### ⚙️ **Comprehensive Configuration**
@@ -34,7 +34,7 @@ A powerful and advanced Craft CMS plugin for handling responsive images with Web
 
 ### Via Composer (Recommended)
 ```bash
-composer require taher-kathiriya/craft-picture-tag
+composer require sfs/craft-picture-tag
 ```
 
 ### Manual Installation
@@ -45,8 +45,9 @@ composer require taher-kathiriya/craft-picture-tag
 ## How to Upgrade
 
 ```bash
-composer require taherkathiriya/craft-picturetag:^1.0
-php craft plugin/install picture-tag
+composer require sfs/craft-picture-tag:^1.0
+php craft plugin/update picture-tag
+php craft clear/caches
 ```
 
 
@@ -56,25 +57,29 @@ php craft plugin/install picture-tag
 
 ```twig
 {# Full responsive picture #}
-{{ craft_picture(image) }}
+{{ sfs_picture(image) }}
 
 {# With options #}
-{{ craft_picture(image, {
+{{ sfs_picture(image, {
     transform: { width: 1200, quality: 90 },
-    alt: 'My hero image'
+    alt: 'Hero image',
+    class: 'hero-img'
 }) }}
 
-{# Simple img #}
-{{ craft_img(image) }}
+{# Simple responsive img #}
+{{ sfs_img(image, { width: 600 }) }}
 
-{# SVG inline #}
-{{ craft_svg(svgAsset, { inline: true }) }}
+{# SVG inline (if enabled in settings) #}
+{{ sfs_svg(svgAsset) }}
+
+{# Force inline false #}
+{{ sfs_svg(svgAsset, { inline: false }) }}
 ```
 
 ### Advanced Usage with Art Direction
 
 ```twig
-{{ craft_picture(image, {
+{{ sfs_picture(image, {
     artDirection: {
         mobile: { width: 480, height: 320, mode: 'crop' },
         tablet: { width: 768, height: 400, mode: 'crop' },
@@ -133,18 +138,11 @@ return [
 ### Hero Image
 ```twig
 <section class="hero">
-    {{ craft_picture(entry.heroImage.one(), {
-        class: 'hero-picture',
+    {{ sfs_picture(entry.heroImage.one(), {
+        class: 'hero',
         fetchpriority: 'high',
-        artDirection: {
-            mobile: { width: 480, height: 300, mode: 'crop' },
-            tablet: { width: 768, height: 400, mode: 'crop' },
-            desktop: { width: 1200, height: 600, mode: 'crop' }
-        },
-        sizes: [
-            '(max-width: 768px) 100vw',
-            '100vw'
-        ]
+        transform: { width: 1600, height: 900, mode: 'crop' },
+        sizes: '(max-width: 768px) 100vw, 100vw'
     }) }}
 </section>
 ```
@@ -152,45 +150,22 @@ return [
 ### Image Gallery
 ```twig
 <div class="gallery">
-    {% for image in entry.galleryImages.all() %}
-        <div class="gallery-item">
-            {{ craft_picture(image, {
-                class: 'gallery-picture',
+    {% for image in entry.gallery.all() %}
+        <div class="item">
+            {{ sfs_picture(image, {
                 loading: loop.first ? 'eager' : 'lazy',
-                fetchpriority: loop.first ? 'high' : 'low',
-                width: 400,
-                height: 300
+                fetchpriority: loop.first ? 'high' : 'auto',
+                width: 600,
+                height: 400
             }) }}
         </div>
     {% endfor %}
 </div>
 ```
 
-### Product Images
-```twig
-<div class="product-image">
-    {{ craft_picture(product.image.one(), {
-        class: 'product-picture',
-        loading: 'lazy',
-        artDirection: {
-            mobile: { width: 300, height: 300, mode: 'crop' },
-            desktop: { width: 500, height: 500, mode: 'crop' }
-        },
-        sizes: [
-            '(max-width: 768px) 50vw',
-            '25vw'
-        ]
-    }) }}
-</div>
-```
-
 ### SVG Icons
 ```twig
-{# Inline SVG | just inline true in settings #}
-{{ craft_svg(iconAsset, { class: 'icon' }) }} 
-
-{# SVG as img #}
-{{ craft_svg(iconAsset, { width: 24, height: 24, alt: 'Icon' }) }}
+{{ sfs_svg(icon, { class: 'icon', width: 24, height: 24 }) }}
 ```
 
 ### Image Optimization
@@ -300,10 +275,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Caching layer** with `enableCache` and `cacheDuration` (in seconds)
 - **Debug mode** (`enableDebug`) for development inspection
 - **Twig functions**:
-  - `craft_picture()` – Full `<picture>` tag with WebP/AVIF with fallbacks
-  - `craft_img()` – Responsive `<img>` with `srcset`
-  - `craft_svg()` – Inline or `<img>` SVG rendering
-  - `craft_srcset()` – Generate `srcset` string manually
+  - `sfs_picture()` – Full `<picture>` tag with WebP/AVIF with fallbacks
+  - `sfs_img()` – Responsive `<img>` with `srcset`
+  - `sfs_svg()` – Inline or `<img>` SVG rendering
+  - `sfs_srcset()` – Generate `srcset` string manually
 - **Project config support** – All settings saved to `config/picture-tag.php`
 - **Craft CP Settings UI** – Clean, tabbed interface with validation
 - **No JavaScript or CSS bloat** – Zero frontend assets by default
@@ -335,8 +310,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Inspired by**:  Marion Newlevant (Picture) and Club Studio (Inline Svg)
 - **Built for**: Craft CMS 5.0+
-- **Developer**: Taher Kathiriya
-- **Developer**: Taha Dudhiya
+- **Developed by**: SFS Infotech
 ---
 
 For more information and updates, visit the [project repository](https://github.com/taher-k5/picture-tag).

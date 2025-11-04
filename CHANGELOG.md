@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] - 2025-11-3
+## [1.0.0] - 05-Nov-2025
 
 ### Added
 - **Initial release** of the minimal, high-performance Picture Tag plugin
@@ -18,10 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Caching layer** with `enableCache` and `cacheDuration` (in seconds)
 - **Debug mode** (`enableDebug`) for development inspection
 - **Twig functions**:
-  - `craft_picture()` – Full `<picture>` tag with WebP/AVIF with fallbacks
-  - `craft_img()` – Responsive `<img>` with `srcset`
-  - `craft_svg()` – Inline or `<img>` SVG rendering
-  - `craft_srcset()` – Generate `srcset` string manually
+  - `sfs_picture()` – Full `<picture>` tag with WebP/AVIF + fallbacks
+  - `sfs_img()` – Responsive `<img>` with `srcset`
+  - `sfs_svg()` – Inline or `<img>` SVG rendering
+  - `sfs_srcset()` – Generate `srcset` string manually
 - **Project config support** – All settings saved to `config/picture-tag.php`
 - **Craft CP Settings UI** – Clean, tabbed interface with validation
 - **No JavaScript or CSS bloat** – Zero frontend assets by default
@@ -36,8 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | **Developer Friendly** | Debug mode, config overrides, clean APIs |
 
 ### Technical Details
-- Built for **Craft CMS 4.5+ / 5.0+**
-- Requires **PHP 8.1+**
+- Built for **Craft CMS 5.0+**
+- Requires **PHP 8.2+**
 - **MIT License**
 - PSR-4 autoloading
 - Zero external dependencies
@@ -67,8 +67,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## How to Upgrade
+## How to Install / Upgrade
 
 ```bash
-composer require taherkathiriya/craft-picturetag:^1.0
+# Install or update
+composer require sfs/craft-picture-tag:^1.0
+
+# Install plugin (if not already)
 php craft plugin/install picture-tag
+
+# Or upgrade
+php craft plugin/update picture-tag
+```
