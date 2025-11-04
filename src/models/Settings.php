@@ -1,6 +1,6 @@
 <?php
 
-namespace taherkathiriya\craftpicturetag\models;
+namespace SFS\craftpicturetag\models;
 
 use Craft;
 use craft\base\Model;

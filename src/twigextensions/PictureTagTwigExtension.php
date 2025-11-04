@@ -1,6 +1,6 @@
 <?php
 
-namespace taherkathiriya\craftpicturetag\twigextensions;
+namespace SFS\craftpicturetag\twigextensions;
 
 use Craft;
 use craft\elements\Asset;
@@ -8,9 +8,9 @@ use craft\elements\db\AssetQuery;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 use Twig\Markup;
-use taherkathiriya\craftpicturetag\PictureTag;
-use taherkathiriya\craftpicturetag\services\ImageService;
-use taherkathiriya\craftpicturetag\services\TemplateService;
+use SFS\craftpicturetag\PictureTag;
+use SFS\craftpicturetag\services\ImageService;
+use SFS\craftpicturetag\services\TemplateService;
 
 class PictureTagTwigExtension extends AbstractExtension
 {
@@ -31,10 +31,10 @@ class PictureTagTwigExtension extends AbstractExtension
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('craft_picture', [$this, 'craftPicture'], ['is_safe' => ['html']]),
-            new TwigFunction('craft_img', [$this, 'craftImg'], ['is_safe' => ['html']]),
-            new TwigFunction('craft_svg', [$this, 'craftSvg'], ['is_safe' => ['html']]),
-            new TwigFunction('craft_srcset', [$this, 'craftSrcset']),
+            new TwigFunction('sfs_picture', [$this, 'sfsPicture'], ['is_safe' => ['html']]),
+            new TwigFunction('sfs_img', [$this, 'sfsImg'], ['is_safe' => ['html']]),
+            new TwigFunction('sfs_svg', [$this, 'sfsSvg'], ['is_safe' => ['html']]),
+            new TwigFunction('sfs_srcset', [$this, 'sfsSrcset']),
 		];
 	}
 
@@ -58,7 +58,7 @@ class PictureTagTwigExtension extends AbstractExtension
 	/**
 	 * Render picture tag
 	 */
-    public function craftPicture($image, array $options = []): Markup
+    public function sfsPicture($image, array $options = []): Markup
 	{
 		$image = $this->normalizeAsset($image);
         if (!$image) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
@@ -69,7 +69,7 @@ class PictureTagTwigExtension extends AbstractExtension
 	/**
 	 * Render image tag
 	 */
-    public function craftImg($image, array $options = []): Markup
+    public function sfsImg($image, array $options = []): Markup
 	{
 		$image = $this->normalizeAsset($image);
         if (!$image) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
@@ -79,7 +79,7 @@ class PictureTagTwigExtension extends AbstractExtension
 	/**
 	 * Render SVG
 	 */
-    public function craftSvg($image, array $options = []): Markup
+    public function sfsSvg($image, array $options = []): Markup
 	{
 		$image = $this->normalizeAsset($image);
         if (!$image) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
@@ -89,7 +89,7 @@ class PictureTagTwigExtension extends AbstractExtension
 	/**
 	 * Generate responsive srcset
 	 */
-    public function craftSrcset($image, array $transform = []): string
+    public function sfsSrcset($image, array $transform = []): string
 	{
 		$image = $this->normalizeAsset($image);
         if (!$image) return '';

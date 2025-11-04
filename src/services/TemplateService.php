@@ -1,13 +1,13 @@
 <?php
 
-namespace taherkathiriya\craftpicturetag\services;
+namespace SFS\craftpicturetag\services;
 
 use Craft;
 use craft\base\Component;
 use craft\elements\Asset;
 use craft\helpers\Html;
 use Twig\Markup;
-use taherkathiriya\craftpicturetag\PictureTag;
+use SFS\craftpicturetag\PictureTag;
 
 /**
  * template service
@@ -154,7 +154,7 @@ class TemplateService extends Component
 	 */
     protected function normalizeOptions(array $options): array
     {
-        $settings = $this->getSettingsSafe() ?? new \taherkathiriya\craftpicturetag\models\Settings();
+        $settings = $this->getSettingsSafe() ?? new \SFS\craftpicturetag\models\Settings();
 
         return array_merge([
             'enableWebP' => $settings->enableWebP,

@@ -1,6 +1,6 @@
 <?php
 
-namespace taherkathiriya\craftpicturetag;
+namespace SFS\craftpicturetag;
 
 use Craft;
 use craft\base\Plugin as BasePlugin;
@@ -11,17 +11,17 @@ use craft\helpers\UrlHelper;
 use craft\services\Plugins;
 use craft\web\UrlManager;
 use craft\web\View;
-use taherkathiriya\craftpicturetag\models\Settings;
-use taherkathiriya\craftpicturetag\services\ImageService;
-use taherkathiriya\craftpicturetag\services\TemplateService;
-use taherkathiriya\craftpicturetag\twigextensions\PictureTagTwigExtension;
+use SFS\craftpicturetag\models\Settings;
+use SFS\craftpicturetag\services\ImageService;
+use SFS\craftpicturetag\services\TemplateService;
+use SFS\craftpicturetag\twigextensions\PictureTagTwigExtension;
 use yii\base\Event;
 
 /**
  * Picture Tag plugin
  *
- * @author Taher Kathiriya <taher@example.com>
- * @copyright Taher Kathiriya
+ * @author SFS Infotech  <SFS@example.com>
+ * @copyright SFS Infotech
  * @license https://craftcms.github.io/license/ Craft License
  */
 class PictureTag extends BasePlugin

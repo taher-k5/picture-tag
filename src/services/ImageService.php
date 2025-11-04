@@ -1,11 +1,11 @@
 <?php
 
-namespace taherkathiriya\craftpicturetag\services;
+namespace SFS\craftpicturetag\services;
 
 use Craft;
 use craft\base\Component;
 use craft\elements\Asset;
-use taherkathiriya\craftpicturetag\PictureTag;
+use SFS\craftpicturetag\PictureTag;
 
 class ImageService extends Component
 {

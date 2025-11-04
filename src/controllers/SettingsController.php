@@ -1,11 +1,11 @@
 <?php
 
-namespace taherkathiriya\craftpicturetag\controllers;
+namespace SFS\craftpicturetag\controllers;
 
 use Craft;
 use craft\web\Controller;
-use taherkathiriya\craftpicturetag\PictureTag;
-use taherkathiriya\craftpicturetag\models\Settings;
+use SFS\craftpicturetag\PictureTag;
+use SFS\craftpicturetag\models\Settings;
 use yii\web\Response;
 
 
