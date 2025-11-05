@@ -35,7 +35,6 @@ class Settings extends Model
     public bool $enableCache = true;
     public ?int $cacheDuration = null;
     public bool $enableDebug = false;
-    // public bool $enableSvgSanitization = true;
 
     public function rules(): array
     {
@@ -141,7 +140,6 @@ class Settings extends Model
             'enableCache' => $this->enableCache,
             'cacheDuration' => $this->cacheDuration,
             'enableDebug' => $this->enableDebug,
-            // 'enableSvgSanitization' => $this->enableSvgSanitization,
         ];
 
         $projectConfig->set("plugins.{$pluginHandle}.settings", $data);
