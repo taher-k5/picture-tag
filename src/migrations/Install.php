@@ -1,6 +1,6 @@
 <?php
 
-namespace taherkathiriya\craftpicturetag\migrations;
+namespace SFS\craftpicturetag\migrations;
 
 use Craft;
 use craft\db\Migration;
