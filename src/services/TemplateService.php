@@ -1,424 +1,254 @@
 <?php
 
-namespace taherkathiriya\craftpicturetag\services;
+namespace SFS\craftpicturetag\services;
 
 use Craft;
 use craft\base\Component;
 use craft\elements\Asset;
 use craft\helpers\Html;
-use craft\helpers\Template;
 use Twig\Markup;
-use taherkathiriya\craftpicturetag\PictureTag;
-use taherkathiriya\craftpicturetag\models\PictureOptions;
+use SFS\craftpicturetag\PictureTag;
 
 /**
- * Template Service
+ * template service
  */
 class TemplateService extends Component
 {
-    /**
-     * Render picture tag
-     */
-    public function renderPicture(Asset $image, array $options = []): Markup
+    private function getSettingsSafe() { return PictureTag::getInstance()?->getSettings(); }
+    private function getImageServiceSafe(): ?ImageService { return PictureTag::getInstance()?->imageService; }
+
+    private function getCharset(): string
     {
-        if (!$image || !$image->kind === Asset::KIND_IMAGE) {
-            return new Markup('', Craft::$app->charset);
-        }
-
-        $settings = PictureTag::getInstance()->getSettings();
-        $imageService = PictureTag::getInstance()->imageService;
-        
-        $options = $this->normalizeOptions($options);
-        
-        // Generate responsive sources
-        $sources = $imageService->generateResponsiveSources($image, $options);
-        
-        // Generate sizes attribute
-        $sizes = $imageService->generateSizes($settings->getDefaultBreakpoints(), $options['sizes'] ?? []);
-        
-        // Build picture tag
-        $pictureAttributes = $this->buildPictureAttributes($options);
-        $sourceTags = $this->buildSourceTags($sources, $options);
-        $imgTag = $this->buildImgTag($image, $options, $sizes);
-        
-        $html = '<picture' . Html::renderTagAttributes($pictureAttributes) . '>' . "\n";
-        $html .= $sourceTags;
-        $html .= $imgTag;
-        $html .= '</picture>';
-
-        return new Markup($html, Craft::$app->charset);
+        return Craft::$app->getView()->getTwig()->getCharset();
     }
 
-    /**
-     * Render simple img tag with srcset
-     */
-    public function renderImg(Asset $image, array $options = []): Markup
+    // DEFAULT TRANSFORM
+    private function getDefaultTransform(): array
     {
-        if (!$image || !$image->kind === Asset::KIND_IMAGE) {
-            return new Markup('', Craft::$app->charset);
-        }
-
-        $options = $this->normalizeOptions($options);
-        
-        // Generate srcset
-        $imageService = PictureTag::getInstance()->imageService;
-        $transform = $options['transform'] ?? [];
-        $srcset = $imageService->generateSrcSet($image, $transform, $transform['width'] ?? 800);
-        
-        // Generate sizes
-        $settings = PictureTag::getInstance()->getSettings();
-        $sizes = $imageService->generateSizes($settings->getDefaultBreakpoints(), $options['sizes'] ?? []);
-        
-        // Build img attributes
-        $imgAttributes = $this->buildImgAttributes($image, $options, $srcset, $sizes);
-        
-        $html = '<img' . Html::renderTagAttributes($imgAttributes) . '>';
-
-        return new Markup($html, Craft::$app->charset);
+        $settings = $this->getSettingsSafe();
+        return [
+            'width' => 1440,
+            'quality' => $settings->webpQuality ?? 80,
+        ];
     }
 
-    /**
-     * Render SVG inline or as img
-     */
-    public function renderSvg(Asset $asset, array $options = []): Markup
-    {
-        if (!$asset || !$asset->kind === Asset::KIND_IMAGE || $asset->getExtension() !== 'svg') {
-            return new Markup('', Craft::$app->charset);
-        }
+	/**
+	 * Render picture tag
+	 */
+    public function renderCraftPicture(Asset $image, array $options = []): Markup
+	{
+        if (!$image || $image->kind !== Asset::KIND_IMAGE) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
 
-        $settings = PictureTag::getInstance()->getSettings();
+        $settings = $this->getSettingsSafe();
+        $imageService = $this->getImageServiceSafe();
+        if (!$settings || !$imageService) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
+
         $options = $this->normalizeOptions($options);
-        
-        // Inline SVG
-        if ($options['inline'] ?? $settings->inlineSvg) {
-            return $this->renderInlineSvg($asset, $options);
-        }
-        
-        // As img tag
-        return $this->renderSvgAsImg($asset, $options);
+        $transform = $options['transform'] ?? $this->getDefaultTransform();
+
+        $sourceTags = $this->buildRasterSourceTags($image, $transform, $options);
+        $fallbackSrc = $image->getUrl($transform, true) ?: $image->getUrl();
+        $imgAttr = $this->buildImgAttributes($image, $options, '', '');
+        $imgAttr['src'] = $this->normalizeUrl($fallbackSrc);
+
+        $html = '<picture>' . $sourceTags .
+                '<img' . Html::renderTagAttributes($imgAttr) . '></picture>';
+
+        return new Markup($html, Craft::$app->getView()->getTwig()->getCharset());
     }
 
-    /**
-     * Render inline SVG
-     */
-    public function renderInlineSvg(Asset $asset, array $options = []): Markup
-    {
-        $imageService = PictureTag::getInstance()->imageService;
-        $svgContent = $imageService->getSvgContent($asset);
-        
-        if (!$svgContent) {
-            return new Markup('', Craft::$app->charset);
+	/**
+	 * Render simple img tag with srcset
+	 */
+    public function renderCraftImg(Asset $image, array $options = []): Markup
+	{
+        if (!$image || $image->kind !== Asset::KIND_IMAGE) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
+
+        $settings = $this->getSettingsSafe();
+        $imageService = $this->getImageServiceSafe();
+        if (!$settings || !$imageService) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
+
+		$options = $this->normalizeOptions($options);
+        $transform = $options['transform'] ?? $this->getDefaultTransform();
+
+        $srcset = [];
+        $maxWidth = $transform['width'] ?? 1440;
+
+        // 1. AVIF (highest precedence)
+        if ($options['enableAvif'] && $imageService->supportsAvif($image)) {
+            $avif = array_merge($transform, ['format' => 'avif']);
+            $srcset[] = $imageService->generateSrcSet($image, $avif, $maxWidth);
         }
 
-        // // Handle sanitization
-        // if ($options['sanitize'] ?? true) {
-        //     $svgContent = $this->sanitizeSvg($svgContent, $options);
-        // }
+        // 2. WebP
+        if ($options['enableWebP'] && $imageService->supportsWebP($image)) {
+            $webp = array_merge($transform, ['format' => 'webp']);
+            $srcset[] = $imageService->generateSrcSet($image, $webp, $maxWidth);
+        }
 
-        // // Handle namespace
-        // if ($options['namespace'] ?? false) {
-        //     $svgContent = $this->addSvgNamespace($svgContent, $options['namespace']);
-        // }
+        // 3. Original
+        $srcset[] = $imageService->generateSrcSet($image, $transform, $maxWidth);
+        $fullSrcset = implode(', ', array_filter($srcset));
 
-        // Apply attributes to SVG
-        $svgAttributes = $this->buildSvgAttributes($options);
-        
-        if (!empty($svgAttributes)) {
-            // Find opening svg tag and add attributes
-            $svgContent = preg_replace(
+        $imgAttr = $this->buildImgAttributes($image, $options, $fullSrcset, '');
+        $imgAttr['src'] = $this->normalizeUrl($image->getUrl($transform, true) ?: $image->getUrl());
+
+        return new Markup('<img' . Html::renderTagAttributes($imgAttr) . '>', Craft::$app->getView()->getTwig()->getCharset());
+    }
+
+	/**
+	 * Render SVG inline or as img
+	 */
+	public function renderCraftSvg(Asset $asset, array $options = []): Markup
+	{
+		if (!$asset || $asset->kind !== Asset::KIND_IMAGE || $asset->getExtension() !== 'svg') {
+
+			return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
+		}
+
+		$settings = $this->getSettingsSafe();
+		if (!$settings) {
+			return new Markup('', Craft::$app->getView()->getTwig()->getCharset());;
+		}
+        $useInline = $options['inline'] ?? $settings->inlineSvg;
+		$options = $this->normalizeOptions($options);
+
+        return $useInline
+            ? $this->renderInlineSvg($asset, $options)
+            : $this->renderSvgAsImg($asset, $options);
+	}
+
+	/**
+	 * Render inline SVG
+	 */
+    private function renderInlineSvg(Asset $asset, array $options): Markup
+    {
+        $imageService = $this->getImageServiceSafe();
+        $content = $imageService?->getSvgContent($asset);
+        if (!$content) return new Markup('', Craft::$app->getView()->getTwig()->getCharset());
+
+        $svgAttr = $this->buildSvgAttributes($options);
+        if ($svgAttr) {
+            $content = preg_replace(
                 '/<svg([^>]*)>/',
-                '<svg$1' . Html::renderTagAttributes($svgAttributes) . '>',
-                $svgContent,
+                '<svg$1' . Html::renderTagAttributes($svgAttr) . '>',
+                $content,
                 1
             );
         }
-
-        return new Markup($svgContent, Craft::$app->charset);
+        return new Markup($content, Craft::$app->getView()->getTwig()->getCharset());
     }
 
-    /**
-     * Render SVG as img tag
-     */
-    public function renderSvgAsImg(Asset $asset, array $options = []): Markup
+	/**
+	 * Render SVG as img tag
+	 */
+    private function renderSvgAsImg(Asset $asset, array $options): Markup
     {
         $options = $this->normalizeOptions($options);
-        $imgAttributes = $this->buildImgAttributes($asset, $options);
-        
-        $html = '<img' . Html::renderTagAttributes($imgAttributes) . '>';
-        
-        return new Markup($html, Craft::$app->charset);
+        $imgAttr = $this->buildImgAttributes($asset, $options);
+        return new Markup('<img' . Html::renderTagAttributes($imgAttr) . '>', Craft::$app->getView()->getTwig()->getCharset());
     }
 
-    /**
-     * Normalize options array
-     */
+	/**
+	 * Normalize options array
+	 */
     protected function normalizeOptions(array $options): array
     {
-        $settings = PictureTag::getInstance()->getSettings();
-        
+        $settings = $this->getSettingsSafe() ?? new \SFS\craftpicturetag\models\Settings();
+
         return array_merge([
-            'class' => $settings->defaultPictureClass,
-            'imgClass' => $settings->defaultImageClass,
-            'loading' => $settings->enableLazyLoading ? 'lazy' : 'eager',
             'enableWebP' => $settings->enableWebP,
             'enableAvif' => $settings->enableAvif,
-            'quality' => $settings->webpQuality,
-            'breakpoints' => $settings->getDefaultBreakpoints(),
-            'transforms' => $settings->getDefaultTransforms(),
-            'artDirection' => [],
-            'sizes' => [],
-            'transform' => [],
-            'alt' => null,
-            'title' => null,
-            'width' => null,
-            'height' => null,
-            'fetchpriority' => null,
-            'preload' => false,
-            'inline' => false,
-             // SVG specific options
-            // 'sanitize' => true,
-            // 'namespace' => false,
-            // 'role' => 'img',
-        ], $options);
+            'loading'    => $settings->enableLazyLoading ? 'lazy' : 'eager',
+            'transform'  => [],
+            'attributes'   => [],
+		], $options);
     }
 
-    /**
-     * Build picture element attributes
-     */
-    protected function buildPictureAttributes(array $options): array
+	/**
+	 * Build source tags
+	 */
+    private function buildRasterSourceTags(Asset $image, array $transform, array $options): string
     {
-        $attributes = [];
-        
-        if (!empty($options['class'])) {
-            $attributes['class'] = $options['class'];
-        }
-        
-        if (!empty($options['id'])) {
-            $attributes['id'] = $options['id'];
-        }
-        
-        // Add any custom attributes
-        if (!empty($options['attributes'])) {
-            $attributes = array_merge($attributes, $options['attributes']);
-        }
-        
-        return $attributes;
-    }
+        $imageService = $this->getImageServiceSafe();
+        if (!$imageService) return '';
 
-    /**
-     * Build source tags
-     */
-    protected function buildSourceTags(array $sources, array $options): string
-    {
         $html = '';
-        $settings = PictureTag::getInstance()->getSettings();
-        
-        // Order sources by format priority (avif -> webp -> default)
-        $formatOrder = ['avif', 'webp', 'default'];
-        
-        foreach ($formatOrder as $format) {
-            if ($format === 'avif' && !$settings->enableAvif) continue;
-            if ($format === 'webp' && !$settings->enableWebP) continue;
-            
-            foreach ($sources as $source) {
-                if (!isset($source['sources'][$format])) continue;
-                
-                $srcset = $source['sources'][$format];
-                if (empty($srcset)) continue;
-                
-                $sourceAttributes = [
-                    'srcset' => $srcset,
-                    'sizes' => $options['sizes'] ? implode(', ', $options['sizes']) : null,
-                    'media' => $source['media'],
-                ];
-                
-                // Add type attribute
-                switch ($format) {
-                    case 'webp':
-                        $sourceAttributes['type'] = 'image/webp';
-                        break;
-                    case 'avif':
-                        $sourceAttributes['type'] = 'image/avif';
-                        break;
-                }
-                
-                // Add any custom source attributes
-                if (!empty($options['sourceAttributes'])) {
-                    $sourceAttributes = array_merge($sourceAttributes, $options['sourceAttributes']);
-                }
-                
-                $html .= '    <source' . Html::renderTagAttributes($sourceAttributes) . '>' . "\n";
-            }
+        $maxWidth = $transform['width'] ?? 1440;
+        // AVIF
+        if ($options['enableAvif'] && $imageService->supportsAvif($image)) {
+            $avif = array_merge($transform, ['format' => 'avif']);
+            $srcset = $imageService->generateSrcSet($image, $avif, $maxWidth);
+            $html .= '<source type="image/avif" srcset="' . $srcset . '">';
         }
-        
-        return $html;
-    }
+
+        // WebP
+        if ($options['enableWebP'] && $imageService->supportsWebP($image)) {
+            $webp = array_merge($transform, ['format' => 'webp']);
+            $srcset = $imageService->generateSrcSet($image, $webp, $maxWidth);
+            $html .= '<source type="image/webp" srcset="' . $srcset . '">';
+        }
+
+        // Original
+        $srcset = $imageService->generateSrcSet($image, $transform, $maxWidth);
+        $html .= '<source srcset="' . $srcset . '">';
+
+		return $html;
+	}
 
     /**
-     * Build img tag
+     * Make URL absolute if root-relative
      */
-    protected function buildImgTag(Asset $image, array $options, string $sizes): string
+    private function normalizeUrl(string $url): string
     {
-        $settings = PictureTag::getInstance()->getSettings();
-        $imageService = PictureTag::getInstance()->imageService;
-        
-        // Get default transform
-        $transform = $options['transform'] ?? $settings->getDefaultTransforms()['desktop'] ?? [];
-        
-        // Generate srcset for fallback img
-        $srcset = $imageService->generateSrcSet($image, $transform, $transform['width'] ?? 800);
-        
-        // Build img attributes
-        $imgAttributes = $this->buildImgAttributes($image, $options, $srcset, $sizes);
-        
-        return '    <img' . Html::renderTagAttributes($imgAttributes) . '>' . "\n";
+        return $url && str_starts_with($url, '/')
+            ? rtrim(Craft::$app->getSites()->getCurrentSite()->getBaseUrl(), '/') . $url
+            : $url;
     }
 
-    /**
-     * Build img element attributes
-     */
-    protected function buildImgAttributes(Asset $asset, array $options, string $srcset = '', string $sizes = ''): array
-    {
-        $settings = PictureTag::getInstance()->getSettings();
-        $attributes = [];
-        
-        // Basic attributes
-        $attributes['src'] = $asset->getUrl($options['transform'] ?? []);
-        
-        if (!empty($srcset)) {
-            $attributes['srcset'] = $srcset;
-        }
-        
-        if (!empty($sizes)) {
-            $attributes['sizes'] = $sizes;
-        }
-        
-        // Alt text
-        $alt = $options['alt'] ?? $asset->alt ?? $asset->title ?? $settings->defaultAltText;
-        if ($settings->requireAltText && empty($alt)) {
-            $alt = $settings->defaultAltText;
-        }
-        $attributes['alt'] = $alt;
-        
-        // Title
-        if (!empty($options['title'])) {
-            $attributes['title'] = $options['title'];
-        }
-        
-        // Class
-        if (!empty($options['imgClass'])) {
-            $attributes['class'] = $options['imgClass'];
-        }
-        
-        // Dimensions
-        if (!empty($options['width'])) {
-            $attributes['width'] = $options['width'];
-        }
-        
-        if (!empty($options['height'])) {
-            $attributes['height'] = $options['height'];
-        }
-        
-        // Loading
-        if (!empty($options['loading'])) {
-            $attributes['loading'] = $options['loading'];
-        }
-        
-        // Fetch priority
-        if ($settings->enableFetchPriority) {
-            $fetchpriority = $options['fetchpriority'] ?? ($options['loading'] === 'eager' ? 'high' : 'low');
-            $attributes['fetchpriority'] = $fetchpriority;
-        }
-        
-        // Lazy loading placeholder
-        if ($options['loading'] === 'lazy' && $settings->enableLazyLoading && !empty($settings->lazyPlaceholder)) {
-            $attributes['data-src'] = $attributes['src'];
-            $attributes['src'] = $settings->lazyPlaceholder;
-            $attributes['class'] = ($attributes['class'] ?? '') . ' ' . $settings->lazyLoadingClass;
-        }
-        
-        // Add any custom attributes
-        if (!empty($options['attributes'])) {
-            $attributes = array_merge($attributes, $options['attributes']);
-        }
-        
-        return $attributes;
-    }
+	/**
+	 * Build img element attributes
+	 */
+	protected function buildImgAttributes(Asset $asset, array $options, string $srcset = '', string $sizes = ''): array
+	{
+		$settings = $this->getSettingsSafe();
+        $attr = [];
 
-    /**
-     * Build SVG element attributes
-     */
+        $src = $asset->getUrl($options['transform'] ?? []) ?: $asset->getUrl();
+        $attr['src'] = $this->normalizeUrl($src);
+
+        if ($srcset) $attr['srcset'] = $srcset;
+        if ($sizes) $attr['sizes'] = $sizes;
+
+        // === AUTO ALT: user → title → unique fallback ===
+        $attr['alt'] = $options['alt'] ?? $asset->title ?? 'Image ' . $asset->id;
+
+		// Loading
+		if ($options['loading'] ?? null) $attr['loading'] = $options['loading'];
+
+        // lazy placeholder (only when lazy is on)
+        if (($options['loading'] ?? '') === 'lazy' && $settings->enableLazyLoading && $settings->lazyPlaceholder) {
+            $attr['data-placeholder'] = $settings->lazyPlaceholder;
+        }
+
+		// Add any custom attributes
+        return array_merge($attr, $options['attributes'] ?? []);
+    }
+	/**
+	 * Build SVG element attributes
+	 */
     protected function buildSvgAttributes(array $options): array
     {
-        $attributes = [];
-        
-        // Class
-        if (!empty($options['class'])) {
-            $attributes['class'] = $options['class'];
-        }
-        
-        // Width and height
-        if (!empty($options['width'])) {
-            $attributes['width'] = $options['width'];
-        }
-        
-        if (!empty($options['height'])) {
-            $attributes['height'] = $options['height'];
-        }
-        
-        // Role for accessibility
-        $attributes['role'] = $options['role'] ?? 'img';
-        
-        // Add any custom attributes
-        if (!empty($options['attributes'])) {
-            $attributes = array_merge($attributes, $options['attributes']);
-        }
-        
-        return $attributes;
+        $attr = $options['attributes'] ?? [];
+		// Class
+        if ($options['class'] ?? null) $attr['class'] = $options['class'];
+
+		// Width and height
+        if ($options['width'] ?? null) $attr['width'] = $options['width'];
+        if ($options['height'] ?? null) $attr['height'] = $options['height'];
+
+		// Role for accessibility
+        $attr['role'] = $options['role'] ?? 'img';
+        return $attr;
     }
-
-    //  /**
-    //  * Sanitize SVG content
-    //  */
-    // protected function sanitizeSvg(string $svgContent, array $options = []): string
-    // {
-    //     // Remove script tags and event handlers for security
-    //     $svgContent = preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi', '', $svgContent);
-    //     $svgContent = preg_replace('/on\w+\s*=\s*["\'][^"\']*["\']/', '', $svgContent);
-        
-    //     // Remove dangerous attributes
-    //     $dangerousAttributes = ['onload', 'onerror', 'onclick', 'onmouseover', 'onfocus', 'onblur'];
-    //     foreach ($dangerousAttributes as $attr) {
-    //         $svgContent = preg_replace('/\s+' . preg_quote($attr) . '\s*=\s*["\'][^"\']*["\']/', '', $svgContent);
-    //     }
-        
-    //     // Remove external references if sanitize is strict
-    //     if ($options['sanitize'] === 'strict') {
-    //         $svgContent = preg_replace('/xlink:href\s*=\s*["\'][^"\']*["\']/', '', $svgContent);
-    //         $svgContent = preg_replace('/href\s*=\s*["\'][^"\']*["\']/', '', $svgContent);
-    //     }
-        
-    //     return $svgContent;
-    // }
-
-    // /**
-    //  * Add namespace to SVG content
-    //  */
-    // protected function addSvgNamespace(string $svgContent, string $namespace = 'http://www.w3.org/2000/svg'): string
-    // {
-    //     // Check if namespace already exists
-    //     if (strpos($svgContent, 'xmlns') !== false) {
-    //         return $svgContent;
-    //     }
-        
-    //     // Add namespace to opening svg tag
-    //     $svgContent = preg_replace(
-    //         '/<svg([^>]*)>/',
-    //         '<svg$1 xmlns="' . htmlspecialchars($namespace) . '">',
-    //         $svgContent,
-    //         1
-    //     );
-        
-    //     return $svgContent;
-    // }
 }

@@ -1,292 +1,151 @@
 <?php
 
-namespace taherkathiriya\craftpicturetag\services;
+namespace SFS\craftpicturetag\services;
 
 use Craft;
 use craft\base\Component;
 use craft\elements\Asset;
-use craft\models\AssetTransform;
-use craft\helpers\ImageTransforms;
-use craft\helpers\StringHelper;
-use taherkathiriya\craftpicturetag\PictureTag;
-use taherkathiriya\craftpicturetag\models\PictureOptions;
+use SFS\craftpicturetag\PictureTag;
 
-/**
- * Image Service
- */
 class ImageService extends Component
 {
-    /**
-     * Generate responsive image sources for picture tag
-     */
-    public function generateResponsiveSources(Asset $image, array $options = []): array
-    {
-        $settings = PictureTag::getInstance()->getSettings();
-        $sources = [];
+    private function getSettingsSafe() { return PictureTag::getInstance()?->getSettings(); }
+    // REMOVED: generateResponsiveSources() – no breakpoints
 
-        if (!$image || !$image->kind === Asset::KIND_IMAGE) {
-            return $sources;
-        }
-
-        $breakpoints = $options['breakpoints'] ?? $settings->getDefaultBreakpoints();
-        $transforms = $options['transforms'] ?? $settings->getDefaultTransforms();
-        $artDirection = $options['artDirection'] ?? [];
-        $enableWebP = $options['enableWebP'] ?? $settings->enableWebP;
-        $enableAvif = $options['enableAvif'] ?? $settings->enableAvif;
-        $quality = $options['quality'] ?? $settings->webpQuality;
-
-        foreach ($breakpoints as $breakpointName => $breakpointWidth) {
-            $transform = $transforms[$breakpointName] ?? $this->getDefaultTransform($breakpointWidth);
-            
-            // Apply art direction if provided
-            if (isset($artDirection[$breakpointName])) {
-                $transform = array_merge($transform, $artDirection[$breakpointName]);
-            }
-
-            // Generate source for each format
-            $sourceSets = [
-                'default' => $this->generateSrcSet($image, $transform, $breakpointWidth)
-            ];
-
-            if ($enableWebP) {
-                $webpTransform = array_merge($transform, ['format' => 'webp', 'quality' => $quality]);
-                $sourceSets['webp'] = $this->generateSrcSet($image, $webpTransform, $breakpointWidth);
-            }
-
-            if ($enableAvif) {
-                $avifTransform = array_merge($transform, ['format' => 'avif', 'quality' => $settings->avifQuality]);
-                $sourceSets['avif'] = $this->generateSrcSet($image, $avifTransform, $breakpointWidth);
-            }
-
-            $sources[] = [
-                'breakpoint' => $breakpointName,
-                'width' => $breakpointWidth,
-                'sources' => $sourceSets,
-                'media' => $this->generateMediaQuery($breakpointName, $breakpointWidth, $breakpoints)
-            ];
-        }
-
-        return $sources;
-    }
-
-    /**
-     * Generate srcset string for given transform
-     */
+	/**
+	 * Generate srcset string for given transform
+	 */
     public function generateSrcSet(Asset $image, array $transform, int $maxWidth): string
     {
-        if (!$image || !$image->kind === Asset::KIND_IMAGE) {
-            return '';
-        }
-
         $srcset = [];
-        $densityMultipliers = [1, 1.5, 2, 3];
-        
-        foreach ($densityMultipliers as $density) {
-            $width = (int) ($transform['width'] * $density);
-            
-            // Don't exceed original image width
-            if ($width > $image->getWidth()) {
-                break;
-            }
+        $densities = [1, 1.5, 2, 3];
+        $imageWidth = (int)$image->getWidth();
+        $baseWidth = min($transform['width'] ?? $maxWidth, $imageWidth);
 
-            $densityTransform = array_merge($transform, ['width' => $width]);
-            
+        foreach ($densities as $d) {
+            $w = (int)round($baseWidth * $d);
+            if ($w > $imageWidth) break;
+
+            $t = array_merge($transform, ['width' => $w]);
             if (isset($transform['height'])) {
-                $densityTransform['height'] = (int) ($transform['height'] * $density);
+                $t['height'] = (int)round($transform['height'] * $d);
             }
 
-            $url = $image->getUrl($densityTransform);
-            if ($url) {
-                $srcset[] = $url . ' ' . $density . 'x';
-            }
+            $url = $image->getUrl($t, true);
+            if ($url) $srcset[] = $url . ' ' . $w . 'w';
         }
 
-        return implode(', ', $srcset);
+        return implode(', ', $srcset) ?: $image->getUrl($transform) . ' ' . $baseWidth . 'w';
     }
 
-    /**
-     * Generate sizes attribute
-     */
-    public function generateSizes(array $breakpoints, array $customSizes = []): string
-    {
-        if (!empty($customSizes)) {
-            return implode(', ', $customSizes);
-        }
-
-        $sizes = [];
-        $breakpointArray = array_values($breakpoints);
-        sort($breakpointArray);
-
-        foreach ($breakpointArray as $index => $width) {
-            if ($index === 0) {
-                $sizes[] = "(max-width: {$width}px) 100vw";
-            } else {
-                $prevWidth = $breakpointArray[$index - 1];
-                $sizes[] = "(min-width: {$prevWidth}px) and (max-width: {$width}px) 100vw";
-            }
-        }
-
-        // Add final breakpoint
-        $lastWidth = end($breakpointArray);
-        $sizes[] = "(min-width: {$lastWidth}px) {$lastWidth}px";
-
-        return implode(', ', $sizes);
-    }
-
-    /**
-     * Generate media query for breakpoint
-     */
-    public function generateMediaQuery(string $breakpointName, int $width, array $allBreakpoints): string
-    {
-        $breakpointArray = array_values($allBreakpoints);
-        sort($breakpointArray);
-        $index = array_search($width, $breakpointArray);
-
-        if ($index === 0) {
-            return "(max-width: {$width}px)";
-        }
-
-        $prevWidth = $breakpointArray[$index - 1];
-        return "(min-width: {$prevWidth}px) and (max-width: {$width}px)";
-    }
-
-    /**
-     * Get default transform for breakpoint width
-     */
-    public function getDefaultTransform(int $width): array
-    {
-        $settings = PictureTag::getInstance()->getSettings();
-        $transforms = $settings->getDefaultTransforms();
-        
-        // Find the closest transform
-        foreach ($transforms as $transform) {
-            if ($transform['width'] >= $width) {
-                return $transform;
-            }
-        }
-
-        // Return the largest transform if none match
-        return end($transforms);
-    }
-
-    /**
-     * Check if image supports WebP
-     */
+	/**
+	 * Check if image supports WebP
+	 */
     public function supportsWebP(Asset $image): bool
     {
-        if (!$image || !$image->kind === Asset::KIND_IMAGE) {
-            return false;
-        }
-
-        $mimeType = $image->getMimeType();
-        return in_array($mimeType, ['image/jpeg', 'image/png']);
+        return in_array($image->getMimeType(), ['image/jpeg', 'image/png']);
     }
 
-    /**
-     * Check if image supports AVIF
-     */
+	/**
+	 * Check if image supports AVIF
+	 */
     public function supportsAvif(Asset $image): bool
     {
-        if (!$image || !$image->kind === Asset::KIND_IMAGE) {
-            return false;
-        }
-
-        $mimeType = $image->getMimeType();
-        return in_array($mimeType, ['image/jpeg', 'image/png']);
+        return in_array($image->getMimeType(), ['image/jpeg', 'image/png']);
     }
 
-    /**
-     * Optimize SVG content
-     */
-    public function optimizeSvg(string $svgContent): string
+	/**
+	 * Optimize SVG content
+	 */
+    public function optimizeSvg(string $content): string
     {
-        $settings = PictureTag::getInstance()->getSettings();
-        
-        if (!$settings->enableSvgOptimization) {
-            return $svgContent;
+        $settings = $this->getSettingsSafe();
+        if (!$settings || !$settings->enableSvgOptimization) {
+            return $content; // OFF → return original
         }
 
-        // Basic SVG optimization
-        $svgContent = preg_replace('/\s+/', ' ', $svgContent); // Remove extra whitespace
-        $svgContent = preg_replace('/<!--.*?-->/s', '', $svgContent); // Remove comments
-        $svgContent = trim($svgContent);
+        // 1. Remove XML declaration & DOCTYPE
+        $content = preg_replace('/^<\?xml[^>]*\?>\s*/i', '', $content);
+        $content = preg_replace('/<!DOCTYPE[^>]*>\s*/i', '', $content);
 
-        return $svgContent;
+        // 2. Remove comments
+        $content = preg_replace('/<!--.*?-->/s', '', $content);
+
+        // 3. Remove metadata (Inkscape, Adobe, etc.)
+        $content = preg_replace('/<metadata[^>]*>.*?<\/metadata>/is', '', $content);
+        $content = preg_replace('/<sodipodi:namedview[^>]*>.*?<\/sodipodi:namedview>/is', '', $content);
+
+        // 4. Remove unnecessary attributes
+        $content = preg_replace('/\s+(id|class)="[^"]*"/i', '', $content);
+        $content = preg_replace('/\s+version="[^"]*"/i', '', $content);
+        $content = preg_replace('/\s+xmlns:xlink="[^"]*"/i', '', $content);
+        $content = preg_replace('/\s+enable-background="[^"]*"/i', '', $content);
+
+        // 5. Normalize whitespace
+        $content = preg_replace('/>\s+</', '><', $content);
+        $content = preg_replace('/\s+/', ' ', $content);
+        $content = preg_replace('/\s*([<>,\/])\s*/', '$1', $content);
+
+        // 6. Shorten common attributes (safe)
+        $content = str_replace(' fill="none"', ' fill="none"', $content); // keep
+        $content = preg_replace('/ stroke="none"/i', ' stroke="none"', $content);
+        $content = preg_replace('/ fill="#000000"/i', ' fill="#000"', $content);
+        $content = preg_replace('/ fill="#ffffff"/i', ' fill="#fff"', $content);
+        $content = preg_replace('/ stroke="#000000"/i', ' stroke="#000"', $content);
+
+        // 7. Remove empty <g> groups
+        $content = preg_replace('/<g>\s*<\/g>/', '', $content);
+        $content = preg_replace('/<g\s*\/>/', '', $content);
+
+        // 8. Trim final output
+        return trim($content);
     }
 
-    /**
-     * Check if asset is SVG
-     */
+	/**
+	 * Check if asset is SVG
+	 */
     public function isSvg(Asset $asset): bool
     {
-        return $asset && $asset->kind === Asset::KIND_IMAGE && $asset->getExtension() === 'svg';
+        return $asset && $asset->getExtension() === 'svg';
     }
 
-    /**
-     * Get SVG content
-     */
-    public function getSvgContent(Asset $asset): string
+	/**
+	 * Get SVG content
+	 */
+    public function getSvgContent(Asset $asset, ?bool $forceSanitize = null): ?string
     {
-        if (!$this->isSvg($asset)) {
-            return '';
+        if ($asset->getExtension() !== 'svg') {
+            return null;
         }
 
-        $path = $asset->getTransformSource();
-        if (!file_exists($path)) {
-            return '';
+        $settings = $this->getSettingsSafe();
+        if (!$settings) {
+            return null;
         }
 
-        $content = file_get_contents($path);
-        return $this->optimizeSvg($content);
-    }
+        try {
+            // Force local copy for remote volumes (S3, etc.)
+            $path = $asset->getCopyOfFile();
 
-    /**
-     * Generate lazy loading placeholder
-     */
-    public function generateLazyPlaceholder(int $width, int $height): string
-    {
-        $settings = PictureTag::getInstance()->getSettings();
-        
-        if ($settings->lazyPlaceholder) {
-            return $settings->lazyPlaceholder;
+            if (!$path || !file_exists($path)) {
+                return null;
+            }
+
+            $content = @file_get_contents($path);
+            if ($content === false || trim($content) === '') {
+                return null;
+            }
+
+            // 1. Optimize
+            if ($settings->enableSvgOptimization) {
+                $content = $this->optimizeSvg($content);
+            }
+
+            return $content;
+
+        } catch (\Throwable $e) {
+            Craft::error('SVG read error: ' . $e->getMessage(), __METHOD__);
+            return null;
         }
-
-        // Generate a simple SVG placeholder
-        $svg = sprintf(
-            '<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg"><rect width="%d" height="%d" fill="#f5f5f5"/></svg>',
-            $width,
-            $height,
-            $width,
-            $height,
-            $width,
-            $height
-        );
-
-        return 'data:image/svg+xml;base64,' . base64_encode($svg);
-    }
-
-    /**
-     * Get transform info for debugging
-     */
-    public function getTransformInfo(Asset $image, array $transform): array
-    {
-        $settings = PictureTag::getInstance()->getSettings();
-        
-        if (!$settings->enableDebug) {
-            return [];
-        }
-
-        return [
-            'original' => [
-                'width' => $image->getWidth(),
-                'height' => $image->getHeight(),
-                'format' => $image->getExtension(),
-                'size' => $image->getSize()
-            ],
-            'transform' => $transform,
-            'url' => $image->getUrl($transform),
-            'webp_supported' => $this->supportsWebP($image),
-            'avif_supported' => $this->supportsAvif($image)
-        ];
     }
 }
