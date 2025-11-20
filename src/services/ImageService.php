@@ -18,24 +18,35 @@ class ImageService extends Component
     public function generateSrcSet(Asset $image, array $transform, int $maxWidth): string
     {
         $srcset = [];
-        $densities = [1, 1.5, 2, 3];
-        $imageWidth = (int)$image->getWidth();
-        $baseWidth = min($transform['width'] ?? $maxWidth, $imageWidth);
 
-        foreach ($densities as $d) {
-            $w = (int)round($baseWidth * $d);
-            if ($w > $imageWidth) break;
+        $imageWidth = (int) $image->getWidth();
+        $baseWidth  = min($transform['width'] ?? $maxWidth, $imageWidth);
+
+        // Define widths you want in srcset (responsive steps)
+        $steps = [320, 480, 640, 768, 1024, 1280, 1536, 1920];
+
+        foreach ($steps as $w) {
+            if ($w > $baseWidth) break;       // do not exceed target width
+            if ($w > $imageWidth) break;      // do not exceed actual image
 
             $t = array_merge($transform, ['width' => $w]);
+
             if (isset($transform['height'])) {
-                $t['height'] = (int)round($transform['height'] * $d);
+                $ratio = $transform['height'] / $baseWidth;
+                $t['height'] = (int)round($ratio * $w);
             }
 
-            $url = $image->getUrl($t, true);
-            if ($url) $srcset[] = $url . ' ' . $w . 'w';
+            if ($url = $image->getUrl($t, true)) {
+                $srcset[] = "{$url} {$w}w";
+            }
         }
 
-        return implode(', ', $srcset) ?: $image->getUrl($transform) . ' ' . $baseWidth . 'w';
+        // fallback — but this will almost never run
+        if (empty($srcset)) {
+            return $image->getUrl($transform) . " {$baseWidth}w";
+        }
+
+        return implode(', ', $srcset);
     }
 
 	/**
@@ -43,7 +54,7 @@ class ImageService extends Component
 	 */
     public function supportsWebP(Asset $image): bool
     {
-        return in_array($image->getMimeType(), ['image/jpeg', 'image/png']);
+        return in_array($image->getMimeType(), ['image/jpeg', 'image/jpg', 'image/png', "image/avif"]);
     }
 
 	/**
@@ -51,7 +62,7 @@ class ImageService extends Component
 	 */
     public function supportsAvif(Asset $image): bool
     {
-        return in_array($image->getMimeType(), ['image/jpeg', 'image/png']);
+        return in_array($image->getMimeType(), ['image/jpeg', 'image/jpg', 'image/png', "image/webp"]);
     }
 
 	/**

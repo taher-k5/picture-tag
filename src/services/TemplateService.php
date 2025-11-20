@@ -48,10 +48,13 @@ class TemplateService extends Component
 
         $sourceTags = $this->buildRasterSourceTags($image, $transform, $options);
         $fallbackSrc = $image->getUrl($transform, true) ?: $image->getUrl();
-        $imgAttr = $this->buildImgAttributes($image, $options, '', '');
+        $imgAttr = $this->buildImgAttributes($image, $options, '', '', true);
         $imgAttr['src'] = $this->normalizeUrl($fallbackSrc);
+        $pictureAttr = $this->buildPictureAttributes($options);
 
-        $html = '<picture>' . $sourceTags .
+        $pictureAttrHtml = !empty($pictureAttr) ? Html::renderTagAttributes($pictureAttr) : '';
+
+        $html = '<picture' . $pictureAttrHtml . '>' . $sourceTags .
                 '<img' . Html::renderTagAttributes($imgAttr) . '></picture>';
 
         return new Markup($html, Craft::$app->getView()->getTwig()->getCharset());
@@ -209,7 +212,7 @@ class TemplateService extends Component
 	/**
 	 * Build img element attributes
 	 */
-	protected function buildImgAttributes(Asset $asset, array $options, string $srcset = '', string $sizes = ''): array
+	protected function buildImgAttributes(Asset $asset, array $options, string $srcset = '', string $sizes = '', bool $pictureTag = false): array
 	{
 		$settings = $this->getSettingsSafe();
         $attr = [];
@@ -231,9 +234,56 @@ class TemplateService extends Component
             $attr['data-placeholder'] = $settings->lazyPlaceholder;
         }
 
-		// Add any custom attributes
-        return array_merge($attr, $options['attributes'] ?? []);
+        if($pictureTag){
+            if (!empty($options['imgClass'])) {
+                $attr['class'] = trim($options['imgClass']);
+            }
+        } else {
+            if (!empty($options['class'])) {
+                $attr['class'] = trim($options['class']);
+            }
+        }
+
+        // 🔥 Merge any other custom attributes (id, data-*, aria-*, etc.)
+        if (!empty($options['attributes']) && is_array($options['attributes'])) {
+            // 'class' may appear in attributes too → merge them safely
+            if (!empty($options['attributes']['class'])) {
+                $attr['class'] = trim(
+                    ($attr['class'] ?? '') . ' ' . $options['attributes']['class']
+                );
+
+                unset($options['attributes']['class']);
+            }
+
+            $attr = array_merge($attr, $options['attributes']);
+        }
+
+        return $attr;
     }
+
+    public function buildPictureAttributes($options){
+        $pictureAttr = [];
+
+        if (!empty($options['class'])) {
+            $pictureAttr['class'] = $options['class'];
+        }
+
+        // Additional picture attributes
+        if (!empty($options['attributes']) && is_array($options['attributes'])) {
+            // Merge class if defined inside attributes array
+            if (!empty($options['attributes']['class'])) {
+                $pictureAttr['class'] = trim(
+                    ($pictureAttr['class'] ?? '') . ' ' . $options['attributes']['class']
+                );
+                unset($options['attributes']['class']);
+            }
+
+            $pictureAttr = array_merge($pictureAttr, $options['attributes']);
+        }
+
+        return $pictureAttr;
+    }
+
 	/**
 	 * Build SVG element attributes
 	 */
