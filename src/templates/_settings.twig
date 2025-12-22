@@ -13,21 +13,26 @@
 {# Determine the active tab #}
 {% set selectedTab = craft.app.request.getQueryParam('tab') | default('general') %}
 
+{# ACTION BUTTON #}
+{# NOTE: This button is OUTSIDE the <form> by Craft design #}
 {% block actionButton %}
     {% if not readOnly %}
-        <input type="submit" class="btn submit" value="{{ 'Save'|t('app') }}">
+        <input type="submit" class="btn submit" value="{{ 'Save'|t('app') }}" form="settings-form">
     {% endif %}
 {% endblock %}
 
+{# CONTENT #}
 {% block content %}
-    <form method="post" accept-charset="UTF-8" data-saveshortcut="true" data-confirm-unload="true">
+    {# IMPORTANT:
+       - data-saveshortcut enables Ctrl+S AND Save button
+       - actionInput() MUST be used (do NOT duplicate action manually)
+    #}
+    <form id="settings-form" method="post" accept-charset="UTF-8" data-saveshortcut>
         {{ csrfInput() }}
+        {{ actionInput('plugins/save-plugin-settings') }}
+        {{ hiddenInput('pluginHandle', 'picture-tag') }}
 
-        {% if not readOnly %}
-            <input type="hidden" name="action" value="picture-tag/settings/save">
-            <input type="hidden" name="pluginHandle" value="picture-tag">
-        {% endif %}
-
+        {# TABS #}
         <div class="tabs-wrapper" data-tabs>
             <div class="tab-content-wrapper">
 
@@ -121,7 +126,7 @@
                         </div>
                     {% endfor %}
                 {% endif %}
-            </div #}
+            </div> #}
 
             {# ---------- PERFORMANCE ---------- #}
             <div id="performance" class="tab-content {% if selectedTab != 'performance' %}hidden{% endif %}" data-tab-content="performance">
