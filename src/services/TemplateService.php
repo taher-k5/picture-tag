@@ -46,7 +46,7 @@ class TemplateService extends Component
         $options = $this->normalizeOptions($options);
         $transform = $options['transform'] ?? $this->getDefaultTransform();
 
-        $sourceTags = $this->buildRasterSourceTags($image, $transform, $options);
+        $sourceTags = $this->buildRasterSourceTags($image, $transform, $options, $options['srcSet'] ?? null);
         $fallbackSrc = $image->getUrl($transform, true) ?: $image->getUrl();
         $imgAttr = $this->buildImgAttributes($image, $options, '', '', true);
         $imgAttr['src'] = $this->normalizeUrl($fallbackSrc);
@@ -165,13 +165,14 @@ class TemplateService extends Component
             'loading'    => $settings->enableLazyLoading ? 'lazy' : 'eager',
             'transform'  => [],
             'attributes'   => [],
+            'srcSet' => null,
 		], $options);
     }
 
 	/**
 	 * Build source tags
 	 */
-    private function buildRasterSourceTags(Asset $image, array $transform, array $options): string
+    private function buildRasterSourceTags(Asset $image, array $transform, array $options, ? array $customSrcSet = null): string
     {
         $imageService = $this->getImageServiceSafe();
         if (!$imageService) return '';
@@ -181,19 +182,19 @@ class TemplateService extends Component
         // AVIF
         if ($options['enableAvif'] && $imageService->supportsAvif($image)) {
             $avif = array_merge($transform, ['format' => 'avif']);
-            $srcset = $imageService->generateSrcSet($image, $avif, $maxWidth);
+            $srcset = $imageService->generateSrcSet($image, $avif, $maxWidth, $customSrcSet);
             $html .= '<source type="image/avif" srcset="' . $srcset . '">';
         }
 
         // WebP
         if ($options['enableWebP'] && $imageService->supportsWebP($image)) {
             $webp = array_merge($transform, ['format' => 'webp']);
-            $srcset = $imageService->generateSrcSet($image, $webp, $maxWidth);
+            $srcset = $imageService->generateSrcSet($image, $webp, $maxWidth, $customSrcSet);
             $html .= '<source type="image/webp" srcset="' . $srcset . '">';
         }
 
         // Original
-        $srcset = $imageService->generateSrcSet($image, $transform, $maxWidth);
+        $srcset = $imageService->generateSrcSet($image, $transform, $maxWidth, $customSrcSet);
         $html .= '<source srcset="' . $srcset . '">';
 
 		return $html;
@@ -202,9 +203,13 @@ class TemplateService extends Component
     /**
      * Make URL absolute if root-relative
      */
-    private function normalizeUrl(string $url): string
+    private function normalizeUrl(?string $url): string
     {
-        return $url && str_starts_with($url, '/')
+        if (!$url) {
+            return '';
+        }
+
+        return str_starts_with($url, '/')
             ? rtrim(Craft::$app->getSites()->getCurrentSite()->getBaseUrl(), '/') . $url
             : $url;
     }

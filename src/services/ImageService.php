@@ -15,15 +15,25 @@ class ImageService extends Component
 	/**
 	 * Generate srcset string for given transform
 	 */
-    public function generateSrcSet(Asset $image, array $transform, int $maxWidth): string
+    public function generateSrcSet(Asset $image, array $transform, int $maxWidth, ? array $customWidths = null): string 
     {
         $srcset = [];
 
         $imageWidth = (int) $image->getWidth();
-        $baseWidth  = min($transform['width'] ?? $maxWidth, $imageWidth);
+        if ($imageWidth <= 0) {
+            return '';
+        }
 
-        // Define widths you want in srcset (responsive steps)
-        $steps = [320, 480, 640, 768, 1024, 1280, 1536, 1920];
+        // Use user-defined widths OR defaults
+        $steps = $customWidths && is_array($customWidths)
+            ? array_map('intval', $customWidths)
+            : [320, 480, 640, 768, 1024, 1280, 1536, 1920];
+
+        // Ensure valid ascending widths
+        $steps = array_unique(array_filter($steps, fn($w) => $w > 0));
+        sort($steps);
+
+        $baseWidth = min($transform['width'] ?? $maxWidth, $imageWidth);
 
         foreach ($steps as $w) {
             if ($w > $baseWidth) break;       // do not exceed target width
@@ -31,7 +41,7 @@ class ImageService extends Component
 
             $t = array_merge($transform, ['width' => $w]);
 
-            if (isset($transform['height'])) {
+            if (isset($transform['height']) && $baseWidth > 0) {
                 $ratio = $transform['height'] / $baseWidth;
                 $t['height'] = (int)round($ratio * $w);
             }
