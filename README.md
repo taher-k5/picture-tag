@@ -108,9 +108,6 @@ Access the plugin settings in the Craft CMS control panel under **Settings > Plu
 - **Lazy Loading**: Enable/disable lazy loading
 - **Cache**: Enable image transform caching
 
-#### Accessibility
-- **Alt Text**: its by default whenuser not give alt then its use default alt
-
 ### Configuration File
 
 Create a `config/picture-tag.php` file to override default settings:
