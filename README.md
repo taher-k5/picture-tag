@@ -178,7 +178,6 @@ return [
 
 ### Loading Performance
 - Optimized lazy loading
-- Reduced motion support
 
 ### Modern Browsers
 - Full support for WebP and AVIF
@@ -191,32 +190,28 @@ return [
 - JPEG/PNG fallbacks
 
 ### Features
-- Required alt text enforcement
-- Proper ARIA roles
-- Keyboard navigation support
-- Screen reader compatibility
-- High contrast mode support
+- Provide Webp and Avif support
+- Use srcset for display image according to screen size
+- Provide SVG inline and image support
 
 ### Best Practices
 - Always provide meaningful alt text
 - Use appropriate loading priorities
-- Consider reduced motion preferences
-- Test with screen readers
 
-### Debug Mode
+<!-- ### Debug Mode
 Enable debug mode in plugin settings to see:
 - Transform information
 - Image dimensions
 - Format support
-- Performance metrics
+- Performance metrics -->
 
-### Debug Function
+<!-- ### Debug Function
 ```twig
 {% if craft.app.config.general.devMode %}
     {% set debugInfo = picture_debug(image, { width: 800 }) %}
     <pre>{{ dump(debugInfo) }}</pre>
 {% endif %}
-```
+``` -->
 
 ### Common Issues
 
